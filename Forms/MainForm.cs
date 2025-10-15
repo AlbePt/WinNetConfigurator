@@ -111,6 +111,8 @@ namespace WinNetConfigurator.Forms
         readonly Button btnCancelSelectedTask = new Button() { Text = "Отменить задачу", AutoSize = true };
         readonly ListView lvExceptions = new ListView() { Dock = DockStyle.Fill, View = View.Details, FullRowSelect = true, HideSelection = false };
 
+        readonly SplitContainer mainSplit = new SplitContainer();
+
         // State
         readonly BindingList<AssignmentDraft> draftBinding = new BindingList<AssignmentDraft>();
         readonly BindingList<Notification> notificationBinding = new BindingList<Notification>();
@@ -185,15 +187,12 @@ namespace WinNetConfigurator.Forms
 
             var rightPanel = BuildSidePanel();
 
-            var split = new SplitContainer
-            {
-                Dock = DockStyle.Fill,
-                Orientation = Orientation.Vertical,
-                SplitterDistance = 720,
-                Panel2MinSize = 240
-            };
-            split.Panel1.Controls.Add(tabs);
-            split.Panel2.Controls.Add(rightPanel);
+            mainSplit.Dock = DockStyle.Fill;
+            mainSplit.Orientation = Orientation.Vertical;
+            mainSplit.Panel1MinSize = 320;
+            mainSplit.Panel1.Controls.Add(tabs);
+            mainSplit.Panel2.Controls.Add(rightPanel);
+            mainSplit.SizeChanged += (_, __) => EnsureMainSplitLayout();
 
             var mainLayout = new TableLayoutPanel
             {
@@ -203,9 +202,41 @@ namespace WinNetConfigurator.Forms
             mainLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             mainLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
             mainLayout.Controls.Add(header, 0, 0);
-            mainLayout.Controls.Add(split, 0, 1);
+            mainLayout.Controls.Add(mainSplit, 0, 1);
 
             Controls.Add(mainLayout);
+        }
+
+        protected override void OnLoad(EventArgs e)
+        {
+            base.OnLoad(e);
+            EnsureMainSplitLayout();
+        }
+
+        void EnsureMainSplitLayout()
+        {
+            if (mainSplit.Width <= 0)
+                return;
+
+            const int desiredPanel2Min = 240;
+            int availableForPanel2 = Math.Max(0, mainSplit.Width - mainSplit.Panel1MinSize);
+            mainSplit.Panel2MinSize = Math.Min(desiredPanel2Min, availableForPanel2);
+
+            int maxSplitterDistance = mainSplit.Width - mainSplit.Panel2MinSize;
+            if (maxSplitterDistance < mainSplit.Panel1MinSize)
+                maxSplitterDistance = mainSplit.Panel1MinSize;
+
+            int desiredDistance = Math.Min(720, maxSplitterDistance);
+            desiredDistance = Math.Max(mainSplit.Panel1MinSize, desiredDistance);
+
+            if (desiredDistance > maxSplitterDistance)
+                desiredDistance = maxSplitterDistance;
+
+            if (desiredDistance < mainSplit.Panel1MinSize)
+                desiredDistance = mainSplit.Panel1MinSize;
+
+            if (desiredDistance >= mainSplit.Panel1MinSize && desiredDistance <= maxSplitterDistance)
+                mainSplit.SplitterDistance = desiredDistance;
         }
 
         Control BuildSidePanel()
