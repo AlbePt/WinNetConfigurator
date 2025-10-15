@@ -687,9 +687,9 @@ namespace WinNetConfigurator.Forms
             cbAcknowledgeRisks.CheckedChanged += (s, e) => UpdateSubmissionState();
             btnSwitchUser.Click += (s, e) => UpdateCurrentUser();
             cbRoleSelector.SelectedIndexChanged += (s, e) => UpdateCurrentUser();
-            notificationSvc.NotificationsChanged += (s, e) => Invoke((Action)RefreshNotifications);
-            draftSvc.DraftsChanged += (s, e) => Invoke((Action)RefreshDraftList);
-            taskQueue.TasksChanged += (s, e) => Invoke((Action)RefreshTaskQueue);
+            notificationSvc.NotificationsChanged += (s, e) => ScheduleOnUiThread(RefreshNotifications);
+            draftSvc.DraftsChanged += (s, e) => ScheduleOnUiThread(RefreshDraftList);
+            taskQueue.TasksChanged += (s, e) => ScheduleOnUiThread(RefreshTaskQueue);
             lvNotifications.DoubleClick += (s, e) => AcknowledgeSelectedNotification();
             btnCancelSelectedTask.Click += (s, e) => CancelSelectedTask();
             btnReadCurrent.Click += (s, e) => ReadCurrentClick();
@@ -713,6 +713,34 @@ namespace WinNetConfigurator.Forms
             };
             lbInventoryChecklist.DataSource = inventoryBinding;
             lbInventoryChecklist.DisplayMember = nameof(InventoryEntry.DisplayName);
+        }
+
+        void ScheduleOnUiThread(Action action)
+        {
+            if (action == null || IsDisposed)
+                return;
+
+            if (!IsHandleCreated)
+            {
+                void OnHandleCreated(object sender, EventArgs args)
+                {
+                    HandleCreated -= OnHandleCreated;
+                    if (!IsDisposed)
+                        action();
+                }
+
+                HandleCreated += OnHandleCreated;
+                return;
+            }
+
+            if (InvokeRequired)
+            {
+                BeginInvoke(action);
+            }
+            else
+            {
+                action();
+            }
         }
 
         void MainForm_FormClosing(object sender, FormClosingEventArgs e)
