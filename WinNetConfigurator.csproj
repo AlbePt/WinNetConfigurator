@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform>AnyCPU</Platform>
+    <ProjectGuid>{A0B7B3E1-3B8E-4B35-945A-C4E6207D9C1C}</ProjectGuid>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>WinNetConfigurator</RootNamespace>
+    <AssemblyName>WinNetConfigurator</AssemblyName>
+    <TargetFrameworkVersion>v4.6.2</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <Deterministic>true</Deterministic>
+    <ApplicationManifest>AppManifest.manifest</ApplicationManifest>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+	<TargetFrameworkVersion>v4.6.2</TargetFrameworkVersion>
+	<LangVersion>7.3</LangVersion>	  
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Management" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <Compile Include="Forms\MainForm.cs" />
+    <Compile Include="Models\AppSettings.cs" />
+    <Compile Include="Models\Machine.cs" />
+    <Compile Include="Models\AdapterInfo.cs" />
+    <Compile Include="Services\DbService.cs" />
+    <Compile Include="Services\IpPlanner.cs" />
+    <Compile Include="Services\PingService.cs" />
+    <Compile Include="Services\ArpService.cs" />
+    <Compile Include="Services\NetworkService.cs" />
+    <Compile Include="Services\ProxyService.cs" />
+    <Compile Include="Services\InventoryService.cs" />
+    <Compile Include="Services\ExcelExportService.cs" />
+    <Compile Include="Services\AuditService.cs" />
+    <Compile Include="Utils\IPRange.cs" />
+    <Compile Include="Utils\Validation.cs" />
+    <Compile Include="Utils\Logger.cs" />
+	<Compile Include="Services\NetworkProbeService.cs" />
+	<Compile Include="Forms\MachineEditForm.cs" />
+	<Compile Include="Models\Cabinet.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
+    <None Include="AppManifest.manifest" />
+  </ItemGroup>
+  <ItemGroup>
+	<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+	<PackageReference Include="ClosedXML" Version="0.104.0" />
+	<PackageReference Include="DocumentFormat.OpenXml" Version="3.0.1" />
+	<PackageReference Include="System.ValueTuple" Version="4.5.0" />
+	<PackageReference Include="Stub.System.Data.SQLite.Core.NetFramework" Version="1.0.118" />
+	<PackageReference Include="System.IO.Packaging" Version="8.0.0" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

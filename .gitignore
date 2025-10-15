@@ -1,0 +1,41 @@
+@"
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Build output
+bin/
+obj/
+[Bb]uild/
+[Ll]og/
+*.cache
+*.ilk
+*.pdb
+*.opendb
+
+# NuGet
+packages/
+*.nupkg
+.nuget/
+
+# Rider/VSCode (необ€зательно)
+.idea/
+.vscode/
+
+# SQLite/временные данные приложени€
+*.db
+*.db3
+*.sqlite
+*.sqlite3
+
+# —борочные артефакты
+*.zip
+*.7z
+
+# OS
+Thumbs.db
+Desktop.ini
+"@ | Out-File -Encoding utf8 .gitignore
