@@ -24,6 +24,7 @@ namespace WinNetConfigurator.Services
                         string netId = (adapter["NetConnectionID"] as string) ?? string.Empty;
                         string name = (adapter["Name"] as string) ?? string.Empty;
                         string mac = (adapter["MACAddress"] as string) ?? string.Empty;
+                        bool isWireless = IsWirelessAdapter(adapter, name, netId);
                         int index = Convert.ToInt32(adapter["Index"]);
 
                         using (var cfgSearch = new ManagementObjectSearcher(new SelectQuery("Win32_NetworkAdapterConfiguration", $"IPEnabled=true AND Index={index}")))
@@ -49,7 +50,8 @@ namespace WinNetConfigurator.Services
                                     SubnetMask = masks.FirstOrDefault(IsIPv4) ?? string.Empty,
                                     Gateway = gateways.FirstOrDefault(IsIPv4) ?? string.Empty,
                                     Dns = dns.Where(IsIPv4).ToArray(),
-                                    IsDhcpEnabled = dhcp
+                                    IsDhcpEnabled = dhcp,
+                                    IsWireless = isWireless
                                 };
                             }
                         }
@@ -181,5 +183,37 @@ namespace WinNetConfigurator.Services
         }
 
         string Escape(string value) => value?.Replace("\\", "\\\\").Replace("'", "\\'") ?? string.Empty;
+
+        bool IsWirelessAdapter(ManagementObject adapter, string name, string netId)
+        {
+            try
+            {
+                if (adapter["AdapterTypeID"] != null && Convert.ToInt32(adapter["AdapterTypeID"]) == 9)
+                    return true;
+            }
+            catch
+            {
+                // ignore parse issues
+            }
+
+            string product = (adapter["ProductName"] as string) ?? string.Empty;
+            string description = (adapter["Description"] as string) ?? string.Empty;
+
+            return ContainsWirelessHint(name)
+                || ContainsWirelessHint(netId)
+                || ContainsWirelessHint(product)
+                || ContainsWirelessHint(description);
+        }
+
+        bool ContainsWirelessHint(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return false;
+
+            return value.IndexOf("wi-fi", StringComparison.OrdinalIgnoreCase) >= 0
+                || value.IndexOf("wifi", StringComparison.OrdinalIgnoreCase) >= 0
+                || value.IndexOf("wireless", StringComparison.OrdinalIgnoreCase) >= 0
+                || value.IndexOf("802.11", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
     }
 }

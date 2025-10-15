@@ -10,5 +10,6 @@ namespace WinNetConfigurator.Models
         public string Gateway { get; set; } = string.Empty;
         public string[] Dns { get; set; } = new string[0];
         public bool IsDhcpEnabled { get; set; }
+        public bool IsWireless { get; set; }
     }
 }

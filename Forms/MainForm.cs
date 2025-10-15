@@ -45,6 +45,7 @@ namespace WinNetConfigurator.Forms
             var btnRefresh = new Button { Text = "Обновить", AutoSize = true };
             var btnExport = new Button { Text = "Экспорт в XLSX", AutoSize = true };
             var btnClearDb = new Button { Text = "Очистить БД", AutoSize = true };
+            var btnSettings = new Button { Text = "Настройки", AutoSize = true };
 
             btnAdd.Click += (_, __) => AddDevice();
             btnEdit.Click += (_, __) => EditSelected();
@@ -52,8 +53,9 @@ namespace WinNetConfigurator.Forms
             btnRefresh.Click += (_, __) => LoadDevices();
             btnExport.Click += (_, __) => Export();
             btnClearDb.Click += (_, __) => ClearDatabase();
+            btnSettings.Click += (_, __) => EditSettings();
 
-            panelButtons.Controls.AddRange(new Control[] { btnAdd, btnEdit, btnDelete, btnRefresh, btnExport, btnClearDb });
+            panelButtons.Controls.AddRange(new Control[] { btnAdd, btnEdit, btnDelete, btnRefresh, btnExport, btnSettings, btnClearDb });
 
             grid.DataSource = devices;
             grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Тип", DataPropertyName = nameof(Device.Type), Width = 120 });
@@ -194,6 +196,19 @@ namespace WinNetConfigurator.Forms
                 {
                     exporter.ExportDevices(devices, dialog.FileName);
                     MessageBox.Show("Экспорт завершён успешно.", "Экспорт", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+        }
+
+        void EditSettings()
+        {
+            var current = db.LoadSettings();
+            using (var dialog = new SettingsForm(current))
+            {
+                if (dialog.ShowDialog(this) == DialogResult.OK)
+                {
+                    db.SaveSettings(dialog.Result);
+                    MessageBox.Show("Настройки обновлены.", "Настройки", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
             }
         }

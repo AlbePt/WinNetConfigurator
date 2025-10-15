@@ -76,6 +76,26 @@ namespace WinNetConfigurator
                 ? new[] { settings.Dns1 }
                 : new[] { settings.Dns1, settings.Dns2 };
 
+            if (config.IsWireless)
+            {
+                var wifiAnswer = MessageBox.Show(
+                    "Обнаружено подключение по Wi-Fi. Настройки сети не будут изменены. Записать текущий IP в базу?",
+                    "Wi-Fi подключение",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Information);
+
+                if (wifiAnswer == DialogResult.Yes)
+                {
+                    SaveDevice(db, cabinet, config.IpAddress, config);
+                    MessageBox.Show(
+                        $"IP {config.IpAddress} записан в базу. Убедитесь, что этот адрес закреплён на маршрутизаторе.",
+                        "Готово",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Information);
+                }
+                return;
+            }
+
             if (Validation.IsRouterNetwork(config.IpAddress))
             {
                 OfferFreeIp(db, network, settings, cabinet, config, dnsList);
