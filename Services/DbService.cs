@@ -280,6 +280,26 @@ CREATE TABLE IF NOT EXISTS devices (
             }
         }
 
+        public void ClearDatabase()
+        {
+            using (var con = Open())
+            using (var tx = con.BeginTransaction())
+            using (var cmd = con.CreateCommand())
+            {
+                cmd.Transaction = tx;
+                cmd.CommandText = "DELETE FROM devices";
+                cmd.ExecuteNonQuery();
+
+                cmd.CommandText = "DELETE FROM cabinets";
+                cmd.ExecuteNonQuery();
+
+                cmd.CommandText = "UPDATE app_settings SET pool_start='', pool_end='', netmask='', gateway='', dns1='', dns2='' WHERE id=1";
+                cmd.ExecuteNonQuery();
+
+                tx.Commit();
+            }
+        }
+
         public HashSet<string> GetUsedIps()
         {
             var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
