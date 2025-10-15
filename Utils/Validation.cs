@@ -1,31 +1,46 @@
 using System;
 using System.Net;
-using System.Text.RegularExpressions;
+using System.Net.Sockets;
 
 namespace WinNetConfigurator.Utils
 {
     public static class Validation
     {
-        public static bool IsValidIPv4(string ip)
+        public static bool IsValidIPv4(string value)
         {
-            return IPAddress.TryParse(ip, out var addr) && addr.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork;
+            return IPAddress.TryParse(value, out var address) && address.AddressFamily == AddressFamily.InterNetwork;
         }
 
-        public static bool IsValidMask(string mask) => IsValidIPv4(mask);
+        public static bool IsValidMask(string value) => IsValidIPv4(value);
+
+        public static bool IsInRange(string value, IPAddress start, IPAddress end)
+        {
+            if (!IPAddress.TryParse(value, out var ip)) return false;
+            return IsInRange(ip, start, end);
+        }
 
         public static bool IsInRange(IPAddress ip, IPAddress start, IPAddress end)
         {
-            var a = BitConverter.ToUInt32(ip.GetAddressBytes(), 0);
-            var s = BitConverter.ToUInt32(start.GetAddressBytes(), 0);
-            var e = BitConverter.ToUInt32(end.GetAddressBytes(), 0);
-            if (BitConverter.IsLittleEndian)
-            {
-                a = ReverseBytes(a); s = ReverseBytes(s); e = ReverseBytes(e);
-            }
-            return a >= s && a <= e;
+            var ipValue = ToUInt32(ip);
+            var startValue = ToUInt32(start);
+            var endValue = ToUInt32(end);
+            return ipValue >= startValue && ipValue <= endValue;
         }
 
-        static uint ReverseBytes(uint x) => 
-            (x & 0x000000FFU) << 24 | (x & 0x0000FF00U) << 8 | (x & 0x00FF0000U) >> 8 | (x & 0xFF000000U) >> 24;
+        public static bool IsRouterNetwork(string ip)
+        {
+            return ip != null && ip.StartsWith("192.168.");
+        }
+
+        static uint ToUInt32(IPAddress address)
+        {
+            var bytes = address.GetAddressBytes();
+            if (bytes.Length != 4) throw new ArgumentException("Требуется IPv4 адрес", nameof(address));
+            if (BitConverter.IsLittleEndian)
+            {
+                Array.Reverse(bytes);
+            }
+            return BitConverter.ToUInt32(bytes, 0);
+        }
     }
 }
