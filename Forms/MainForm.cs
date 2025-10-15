@@ -181,10 +181,20 @@ namespace WinNetConfigurator.Forms
             }
 
             var answer = MessageBox.Show($"Удалить устройство {selected.Name} ({selected.IpAddress})?", "Подтверждение", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-            if (answer == DialogResult.Yes)
+            if (answer != DialogResult.Yes)
+                return;
+
+            if (db.DeleteDevice(selected.Id))
             {
-                db.DeleteDevice(selected.Id);
-                LoadDevices();
+                devices.Remove(selected);
+            }
+            else
+            {
+                MessageBox.Show(
+                    "Не удалось удалить устройство из базы данных.",
+                    "Ошибка",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
             }
         }
 
