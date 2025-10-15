@@ -12,6 +12,8 @@ namespace WinNetConfigurator.Services
     {
         public NetworkConfiguration GetActiveConfiguration()
         {
+            NetworkConfiguration fallbackCandidate = null;
+
             foreach (var adapter in NetworkInterface.GetAllNetworkInterfaces())
             {
                 try
@@ -19,7 +21,7 @@ namespace WinNetConfigurator.Services
                     if (adapter == null)
                         continue;
 
-                    if (adapter.OperationalStatus != OperationalStatus.Up)
+                    if (!IsOperational(adapter))
                         continue;
 
                     if (adapter.NetworkInterfaceType == NetworkInterfaceType.Loopback
@@ -28,7 +30,13 @@ namespace WinNetConfigurator.Services
                         continue;
                     }
 
+                    if (!adapter.Supports(NetworkInterfaceComponent.IPv4))
+                        continue;
+
                     var properties = adapter.GetIPProperties();
+                    if (properties == null)
+                        continue;
+
                     var unicast = properties.UnicastAddresses
                         .FirstOrDefault(a => a?.Address?.AddressFamily == AddressFamily.InterNetwork
                                              && !IPAddress.IsLoopback(a.Address));
@@ -55,7 +63,7 @@ namespace WinNetConfigurator.Services
                     string adapterId = string.IsNullOrWhiteSpace(adapter.Name) ? adapter.Id : adapter.Name;
                     string mac = string.Join(":", adapter.GetPhysicalAddress().GetAddressBytes().Select(b => b.ToString("X2")));
 
-                    return new NetworkConfiguration
+                    var configuration = new NetworkConfiguration
                     {
                         AdapterId = adapterId,
                         AdapterName = adapter.Description,
@@ -67,6 +75,11 @@ namespace WinNetConfigurator.Services
                         IsDhcpEnabled = dhcpEnabled,
                         IsWireless = IsWirelessAdapter(adapter)
                     };
+
+                    if (!string.IsNullOrWhiteSpace(gateway))
+                        return configuration;
+
+                    fallbackCandidate ??= configuration;
                 }
                 catch
                 {
@@ -74,7 +87,21 @@ namespace WinNetConfigurator.Services
                 }
             }
 
-            return GetActiveConfigurationViaWmi();
+            return fallbackCandidate ?? GetActiveConfigurationViaWmi();
+        }
+
+        bool IsOperational(NetworkInterface adapter)
+        {
+            switch (adapter.OperationalStatus)
+            {
+                case OperationalStatus.Up:
+                case OperationalStatus.Unknown:
+                case OperationalStatus.Dormant:
+                case OperationalStatus.LowerLayerDown:
+                    return true;
+                default:
+                    return false;
+            }
         }
 
         NetworkConfiguration GetActiveConfigurationViaWmi()
