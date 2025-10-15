@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
 using ClosedXML.Excel;
 using WinNetConfigurator.Models;
 
@@ -44,6 +46,40 @@ namespace WinNetConfigurator.Services
             }
         }
 
+        public List<Device> ImportDevices(string filePath)
+        {
+            var devices = new List<Device>();
+
+            using (var workbook = new XLWorkbook(filePath))
+            {
+                var sheet = workbook.Worksheet(1);
+                var usedRange = sheet.RangeUsed();
+                if (usedRange == null)
+                    return devices;
+
+                foreach (var row in usedRange.RowsUsed().Skip(1))
+                {
+                    var device = new Device
+                    {
+                        Type = ParseType(row.Cell(1).GetString()),
+                        CabinetName = row.Cell(2).GetString().Trim(),
+                        Name = row.Cell(3).GetString().Trim(),
+                        IpAddress = row.Cell(4).GetString().Trim(),
+                        MacAddress = row.Cell(5).GetString().Trim(),
+                        Description = row.Cell(6).GetString().Trim(),
+                        AssignedAt = ParseAssignedAt(row.Cell(7).GetString())
+                    };
+
+                    if (string.IsNullOrWhiteSpace(device.CabinetName) || string.IsNullOrWhiteSpace(device.IpAddress))
+                        continue;
+
+                    devices.Add(device);
+                }
+            }
+
+            return devices;
+        }
+
         string TranslateType(DeviceType type)
         {
             switch (type)
@@ -55,6 +91,43 @@ namespace WinNetConfigurator.Services
                 default:
                     return "Рабочее место";
             }
+        }
+
+        DeviceType ParseType(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return DeviceType.Workstation;
+
+            value = value.Trim();
+
+            if (string.Equals(value, "Принтер", StringComparison.OrdinalIgnoreCase))
+                return DeviceType.Printer;
+
+            if (string.Equals(value, "Другое устройство", StringComparison.OrdinalIgnoreCase))
+                return DeviceType.Other;
+
+            if (string.Equals(value, "Рабочее место", StringComparison.OrdinalIgnoreCase))
+                return DeviceType.Workstation;
+
+            if (Enum.TryParse<DeviceType>(value, true, out var parsed))
+                return parsed;
+
+            return DeviceType.Workstation;
+        }
+
+        DateTime ParseAssignedAt(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return DateTime.Now;
+
+            var trimmed = value.Trim();
+            if (DateTime.TryParseExact(trimmed, "dd.MM.yyyy HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out var exact))
+                return exact;
+
+            if (DateTime.TryParse(trimmed, CultureInfo.CurrentCulture, DateTimeStyles.AssumeLocal, out var parsed))
+                return parsed;
+
+            return DateTime.Now;
         }
     }
 }

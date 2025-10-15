@@ -11,14 +11,14 @@ namespace WinNetConfigurator.Forms
     public class MainForm : Form
     {
         readonly DbService db;
-        readonly ExcelExportService exporter;
+        readonly ExcelExportService excel;
         readonly BindingList<Device> devices = new BindingList<Device>();
         readonly DataGridView grid = new DataGridView { Dock = DockStyle.Fill, ReadOnly = true, AutoGenerateColumns = false, SelectionMode = DataGridViewSelectionMode.FullRowSelect, MultiSelect = false };
 
-        public MainForm(DbService db, ExcelExportService exporter)
+        public MainForm(DbService db, ExcelExportService excelService)
         {
             this.db = db;
-            this.exporter = exporter;
+            excel = excelService;
 
             Text = "WinNetConfigurator";
             Width = 960;
@@ -44,6 +44,9 @@ namespace WinNetConfigurator.Forms
             var btnDelete = new Button { Text = "Удалить", AutoSize = true };
             var btnRefresh = new Button { Text = "Обновить", AutoSize = true };
             var btnExport = new Button { Text = "Экспорт в XLSX", AutoSize = true };
+            var btnImportXlsx = new Button { Text = "Импорт из XLSX", AutoSize = true };
+            var btnImportDb = new Button { Text = "Импорт БД", AutoSize = true };
+            var btnBackup = new Button { Text = "Резервная копия БД", AutoSize = true };
             var btnClearDb = new Button { Text = "Очистить БД", AutoSize = true };
             var btnSettings = new Button { Text = "Настройки", AutoSize = true };
 
@@ -52,10 +55,25 @@ namespace WinNetConfigurator.Forms
             btnDelete.Click += (_, __) => DeleteSelected();
             btnRefresh.Click += (_, __) => LoadDevices();
             btnExport.Click += (_, __) => Export();
+            btnImportXlsx.Click += (_, __) => ImportFromExcel();
+            btnImportDb.Click += (_, __) => ImportDatabase();
+            btnBackup.Click += (_, __) => BackupDatabase();
             btnClearDb.Click += (_, __) => ClearDatabase();
             btnSettings.Click += (_, __) => EditSettings();
 
-            panelButtons.Controls.AddRange(new Control[] { btnAdd, btnEdit, btnDelete, btnRefresh, btnExport, btnSettings, btnClearDb });
+            panelButtons.Controls.AddRange(new Control[]
+            {
+                btnAdd,
+                btnEdit,
+                btnDelete,
+                btnRefresh,
+                btnExport,
+                btnImportXlsx,
+                btnImportDb,
+                btnBackup,
+                btnSettings,
+                btnClearDb
+            });
 
             grid.DataSource = devices;
             grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Тип", DataPropertyName = nameof(Device.Type), Width = 120 });
@@ -204,8 +222,58 @@ namespace WinNetConfigurator.Forms
             {
                 if (dialog.ShowDialog(this) == DialogResult.OK)
                 {
-                    exporter.ExportDevices(devices, dialog.FileName);
+                    excel.ExportDevices(devices, dialog.FileName);
                     MessageBox.Show("Экспорт завершён успешно.", "Экспорт", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+        }
+
+        void ImportFromExcel()
+        {
+            using (var dialog = new OpenFileDialog { Filter = "Excel файлы (*.xlsx)|*.xlsx" })
+            {
+                if (dialog.ShowDialog(this) != DialogResult.OK)
+                    return;
+
+                var confirm = MessageBox.Show(
+                    "Текущие устройства и кабинеты будут заменены данными из файла. Продолжить?",
+                    "Импорт из XLSX",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Question,
+                    MessageBoxDefaultButton.Button2);
+
+                if (confirm != DialogResult.Yes)
+                    return;
+
+                try
+                {
+                    var imported = excel.ImportDevices(dialog.FileName);
+                    if (imported.Count == 0)
+                    {
+                        MessageBox.Show(
+                            "В выбранном файле не найдено устройств для импорта.",
+                            "Импорт из XLSX",
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Information);
+                        return;
+                    }
+
+                    db.ReplaceDevices(imported);
+                    LoadDevices();
+
+                    MessageBox.Show(
+                        "Импорт из XLSX выполнен успешно.",
+                        "Импорт из XLSX",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(
+                        "Не удалось выполнить импорт из XLSX: " + ex.Message,
+                        "Ошибка",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error);
                 }
             }
         }
@@ -238,6 +306,75 @@ namespace WinNetConfigurator.Forms
             db.ClearDatabase();
             LoadDevices();
             MessageBox.Show("База данных очищена.", "Готово", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
+        void ImportDatabase()
+        {
+            using (var dialog = new OpenFileDialog { Filter = "Файлы базы данных (*.db)|*.db|Все файлы (*.*)|*.*" })
+            {
+                if (dialog.ShowDialog(this) != DialogResult.OK)
+                    return;
+
+                var confirm = MessageBox.Show(
+                    "Текущая база данных будет заменена выбранным файлом. Продолжить?",
+                    "Импорт базы данных",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Warning,
+                    MessageBoxDefaultButton.Button2);
+
+                if (confirm != DialogResult.Yes)
+                    return;
+
+                try
+                {
+                    db.RestoreDatabase(dialog.FileName);
+                    LoadDevices();
+                    MessageBox.Show(
+                        "Импорт базы данных завершён успешно.",
+                        "Импорт",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(
+                        "Не удалось импортировать базу данных: " + ex.Message,
+                        "Ошибка",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        void BackupDatabase()
+        {
+            using (var dialog = new SaveFileDialog
+            {
+                Filter = "Файлы базы данных (*.db)|*.db|Все файлы (*.*)|*.*",
+                FileName = $"backup_{DateTime.Now:yyyyMMdd_HHmm}.db"
+            })
+            {
+                if (dialog.ShowDialog(this) != DialogResult.OK)
+                    return;
+
+                try
+                {
+                    db.BackupDatabase(dialog.FileName);
+                    MessageBox.Show(
+                        "Резервная копия успешно сохранена.",
+                        "Резервное копирование",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(
+                        "Не удалось создать резервную копию: " + ex.Message,
+                        "Ошибка",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error);
+                }
+            }
         }
     }
 }
