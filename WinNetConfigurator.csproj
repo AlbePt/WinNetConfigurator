@@ -32,8 +32,8 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-	<TargetFrameworkVersion>v4.6.2</TargetFrameworkVersion>
-	<LangVersion>7.3</LangVersion>	  
+    <TargetFrameworkVersion>v4.6.2</TargetFrameworkVersion>
+    <LangVersion>7.3</LangVersion>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -47,56 +47,33 @@
   <ItemGroup>
     <Compile Include="Program.cs" />
     <Compile Include="Forms\MainForm.cs" />
+    <Compile Include="Forms\SettingsForm.cs" />
+    <Compile Include="Forms\CabinetSelectionForm.cs" />
+    <Compile Include="Forms\DeviceEditForm.cs" />
+    <Compile Include="Forms\FreeIpOfferForm.cs" />
     <Compile Include="Models\AppSettings.cs" />
-    <Compile Include="Models\Machine.cs" />
-    <Compile Include="Models\AdapterInfo.cs" />
+    <Compile Include="Models\Cabinet.cs" />
+    <Compile Include="Models\Device.cs" />
+    <Compile Include="Models\DeviceType.cs" />
+    <Compile Include="Models\NetworkConfiguration.cs" />
     <Compile Include="Services\DbService.cs" />
-    <Compile Include="Services\IpPlanner.cs" />
-    <Compile Include="Services\PingService.cs" />
-    <Compile Include="Services\ArpService.cs" />
     <Compile Include="Services\NetworkService.cs" />
-    <Compile Include="Services\ProxyService.cs" />
-    <Compile Include="Services\InventoryService.cs" />
     <Compile Include="Services\ExcelExportService.cs" />
-    <Compile Include="Services\AuditService.cs" />
     <Compile Include="Utils\IPRange.cs" />
     <Compile Include="Utils\Validation.cs" />
     <Compile Include="Utils\Logger.cs" />
-	<Compile Include="Services\NetworkProbeService.cs" />
-	<Compile Include="Forms\MachineEditForm.cs" />
-	<Compile Include="Models\Cabinet.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
     <None Include="AppManifest.manifest" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Models\UserRole.cs" />
-    <Compile Include="Models\UserSession.cs" />
-    <Compile Include="Models\AssignmentStatus.cs" />
-    <Compile Include="Models\IpPolicyState.cs" />
-    <Compile Include="Models\AssignmentDraft.cs" />
-    <Compile Include="Models\AssignmentDecision.cs" />
-    <Compile Include="Models\InventoryEntry.cs" />
-    <Compile Include="Models\InventorySession.cs" />
-    <Compile Include="Models\ExportRequest.cs" />
-    <Compile Include="Models\Notification.cs" />
-    <Compile Include="Models\BackgroundTask.cs" />
-    <Compile Include="Models\TaskProgressReport.cs" />
-    <Compile Include="Services\RoleAccessService.cs" />
-    <Compile Include="Services\DraftService.cs" />
-    <Compile Include="Services\NotificationService.cs" />
-    <Compile Include="Services\TaskQueueService.cs" />
-    <Compile Include="Services\IpPolicyService.cs" />
-    <Compile Include="Services\InventoryWorkflowService.cs" />
-  </ItemGroup>
-  <ItemGroup>
-        <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-        <PackageReference Include="ClosedXML" Version="0.104.0" />
-        <PackageReference Include="DocumentFormat.OpenXml" Version="3.0.1" />
-        <PackageReference Include="System.ValueTuple" Version="4.5.0" />
-        <PackageReference Include="Stub.System.Data.SQLite.Core.NetFramework" Version="1.0.118" />
-        <PackageReference Include="System.IO.Packaging" Version="8.0.0" />
+    <PackageReference Include="ClosedXML" Version="0.104.0" />
+    <PackageReference Include="DocumentFormat.OpenXml" Version="3.0.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="Stub.System.Data.SQLite.Core.NetFramework" Version="1.0.118" />
+    <PackageReference Include="System.IO.Packaging" Version="8.0.0" />
+    <PackageReference Include="System.ValueTuple" Version="4.5.0" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

@@ -1,17 +1,31 @@
 using System;
+using System.Net;
 
 namespace WinNetConfigurator.Models
 {
     public class AppSettings
     {
-        public string PoolStart { get; set; } = "";
-        public string PoolEnd { get; set; } = "";
-        public string Netmask { get; set; } = "";
-        public string Gateway { get; set; } = "";
-        public string Dns1 { get; set; } = "";
-        public string Dns2 { get; set; } = "";
-        public string ProxyHostPort { get; set; } = "";
-        public string ProxyBypass { get; set; } = "";
-        public bool ProxyGlobalOn { get; set; }
+        public string PoolStart { get; set; } = string.Empty;
+        public string PoolEnd { get; set; } = string.Empty;
+        public string Netmask { get; set; } = string.Empty;
+        public string Gateway { get; set; } = string.Empty;
+        public string Dns1 { get; set; } = string.Empty;
+        public string Dns2 { get; set; } = string.Empty;
+
+        public bool IsComplete()
+        {
+            return !string.IsNullOrWhiteSpace(PoolStart)
+                && !string.IsNullOrWhiteSpace(PoolEnd)
+                && !string.IsNullOrWhiteSpace(Netmask)
+                && !string.IsNullOrWhiteSpace(Gateway)
+                && !string.IsNullOrWhiteSpace(Dns1);
+        }
+
+        public (IPAddress Start, IPAddress End) GetPoolRange()
+        {
+            if (!IPAddress.TryParse(PoolStart, out var start) || !IPAddress.TryParse(PoolEnd, out var end))
+                throw new InvalidOperationException("Диапазон IP настроен некорректно.");
+            return (start, end);
+        }
     }
 }
