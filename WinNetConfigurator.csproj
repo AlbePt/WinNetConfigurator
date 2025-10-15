@@ -71,12 +71,32 @@
     <None Include="AppManifest.manifest" />
   </ItemGroup>
   <ItemGroup>
-	<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-	<PackageReference Include="ClosedXML" Version="0.104.0" />
-	<PackageReference Include="DocumentFormat.OpenXml" Version="3.0.1" />
-	<PackageReference Include="System.ValueTuple" Version="4.5.0" />
-	<PackageReference Include="Stub.System.Data.SQLite.Core.NetFramework" Version="1.0.118" />
-	<PackageReference Include="System.IO.Packaging" Version="8.0.0" />
+    <Compile Include="Models\UserRole.cs" />
+    <Compile Include="Models\UserSession.cs" />
+    <Compile Include="Models\AssignmentStatus.cs" />
+    <Compile Include="Models\IpPolicyState.cs" />
+    <Compile Include="Models\AssignmentDraft.cs" />
+    <Compile Include="Models\AssignmentDecision.cs" />
+    <Compile Include="Models\InventoryEntry.cs" />
+    <Compile Include="Models\InventorySession.cs" />
+    <Compile Include="Models\ExportRequest.cs" />
+    <Compile Include="Models\Notification.cs" />
+    <Compile Include="Models\BackgroundTask.cs" />
+    <Compile Include="Models\TaskProgressReport.cs" />
+    <Compile Include="Services\RoleAccessService.cs" />
+    <Compile Include="Services\DraftService.cs" />
+    <Compile Include="Services\NotificationService.cs" />
+    <Compile Include="Services\TaskQueueService.cs" />
+    <Compile Include="Services\IpPolicyService.cs" />
+    <Compile Include="Services\InventoryWorkflowService.cs" />
+  </ItemGroup>
+  <ItemGroup>
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+        <PackageReference Include="ClosedXML" Version="0.104.0" />
+        <PackageReference Include="DocumentFormat.OpenXml" Version="3.0.1" />
+        <PackageReference Include="System.ValueTuple" Version="4.5.0" />
+        <PackageReference Include="Stub.System.Data.SQLite.Core.NetFramework" Version="1.0.118" />
+        <PackageReference Include="System.IO.Packaging" Version="8.0.0" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
