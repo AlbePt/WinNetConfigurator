@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Management;
 using System.Net;
+using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using WinNetConfigurator.Models;
 
@@ -10,6 +11,73 @@ namespace WinNetConfigurator.Services
     public class NetworkService
     {
         public NetworkConfiguration GetActiveConfiguration()
+        {
+            foreach (var adapter in NetworkInterface.GetAllNetworkInterfaces())
+            {
+                try
+                {
+                    if (adapter == null)
+                        continue;
+
+                    if (adapter.OperationalStatus != OperationalStatus.Up)
+                        continue;
+
+                    if (adapter.NetworkInterfaceType == NetworkInterfaceType.Loopback
+                        || adapter.NetworkInterfaceType == NetworkInterfaceType.Tunnel)
+                    {
+                        continue;
+                    }
+
+                    var properties = adapter.GetIPProperties();
+                    var unicast = properties.UnicastAddresses
+                        .FirstOrDefault(a => a?.Address?.AddressFamily == AddressFamily.InterNetwork
+                                             && !IPAddress.IsLoopback(a.Address));
+
+                    if (unicast == null)
+                        continue;
+
+                    string ip = unicast.Address.ToString();
+                    if (string.IsNullOrWhiteSpace(ip))
+                        continue;
+
+                    string mask = unicast.IPv4Mask?.ToString() ?? string.Empty;
+                    string gateway = properties.GatewayAddresses
+                        .FirstOrDefault(g => g?.Address?.AddressFamily == AddressFamily.InterNetwork)?.Address.ToString() ?? string.Empty;
+
+                    var dns = properties.DnsAddresses
+                        .Where(a => a.AddressFamily == AddressFamily.InterNetwork)
+                        .Select(a => a.ToString())
+                        .Where(IsIPv4)
+                        .ToArray();
+
+                    bool dhcpEnabled = properties.GetIPv4Properties()?.IsDhcpEnabled ?? false;
+
+                    string adapterId = string.IsNullOrWhiteSpace(adapter.Name) ? adapter.Id : adapter.Name;
+                    string mac = string.Join(":", adapter.GetPhysicalAddress().GetAddressBytes().Select(b => b.ToString("X2")));
+
+                    return new NetworkConfiguration
+                    {
+                        AdapterId = adapterId,
+                        AdapterName = adapter.Description,
+                        MacAddress = mac,
+                        IpAddress = ip,
+                        SubnetMask = mask,
+                        Gateway = gateway,
+                        Dns = dns,
+                        IsDhcpEnabled = dhcpEnabled,
+                        IsWireless = IsWirelessAdapter(adapter)
+                    };
+                }
+                catch
+                {
+                    // ignore issues with a specific adapter
+                }
+            }
+
+            return GetActiveConfigurationViaWmi();
+        }
+
+        NetworkConfiguration GetActiveConfigurationViaWmi()
         {
             var adaptersQuery = new SelectQuery("Win32_NetworkAdapter", "NetConnectionStatus IS NOT NULL");
             using (var searcher = new ManagementObjectSearcher(adaptersQuery))
@@ -183,6 +251,21 @@ namespace WinNetConfigurator.Services
         }
 
         string Escape(string value) => value?.Replace("\\", "\\\\").Replace("'", "\\'") ?? string.Empty;
+
+        bool IsWirelessAdapter(NetworkInterface adapter)
+        {
+            if (adapter == null)
+                return false;
+
+            if (adapter.NetworkInterfaceType == NetworkInterfaceType.Wireless80211)
+                return true;
+
+            string name = adapter.Name;
+            string description = adapter.Description;
+
+            return ContainsWirelessHint(name)
+                || ContainsWirelessHint(description);
+        }
 
         bool IsWirelessAdapter(ManagementObject adapter, string name, string netId)
         {
