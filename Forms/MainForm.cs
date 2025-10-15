@@ -44,14 +44,16 @@ namespace WinNetConfigurator.Forms
             var btnDelete = new Button { Text = "Удалить", AutoSize = true };
             var btnRefresh = new Button { Text = "Обновить", AutoSize = true };
             var btnExport = new Button { Text = "Экспорт в XLSX", AutoSize = true };
+            var btnClearDb = new Button { Text = "Очистить БД", AutoSize = true };
 
             btnAdd.Click += (_, __) => AddDevice();
             btnEdit.Click += (_, __) => EditSelected();
             btnDelete.Click += (_, __) => DeleteSelected();
             btnRefresh.Click += (_, __) => LoadDevices();
             btnExport.Click += (_, __) => Export();
+            btnClearDb.Click += (_, __) => ClearDatabase();
 
-            panelButtons.Controls.AddRange(new Control[] { btnAdd, btnEdit, btnDelete, btnRefresh, btnExport });
+            panelButtons.Controls.AddRange(new Control[] { btnAdd, btnEdit, btnDelete, btnRefresh, btnExport, btnClearDb });
 
             grid.DataSource = devices;
             grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Тип", DataPropertyName = nameof(Device.Type), Width = 120 });
@@ -194,6 +196,23 @@ namespace WinNetConfigurator.Forms
                     MessageBox.Show("Экспорт завершён успешно.", "Экспорт", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
             }
+        }
+
+        void ClearDatabase()
+        {
+            var answer = MessageBox.Show(
+                "Это удалит все устройства, кабинеты и настройки сети. Продолжить?",
+                "Очистка базы данных",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning,
+                MessageBoxDefaultButton.Button2);
+
+            if (answer != DialogResult.Yes)
+                return;
+
+            db.ClearDatabase();
+            LoadDevices();
+            MessageBox.Show("База данных очищена.", "Готово", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
     }
 }
