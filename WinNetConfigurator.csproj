@@ -51,6 +51,7 @@
     <Compile Include="Forms\CabinetSelectionForm.cs" />
     <Compile Include="Forms\DeviceEditForm.cs" />
     <Compile Include="Forms\FreeIpOfferForm.cs" />
+    <Compile Include="Forms\ManualIpEntryForm.cs" />
     <Compile Include="Models\AppSettings.cs" />
     <Compile Include="Models\Cabinet.cs" />
     <Compile Include="Models\Device.cs" />

@@ -269,14 +269,14 @@ CREATE TABLE IF NOT EXISTS devices (
             }
         }
 
-        public void DeleteDevice(int id)
+        public bool DeleteDevice(int id)
         {
             using (var con = Open())
             using (var cmd = con.CreateCommand())
             {
                 cmd.CommandText = "DELETE FROM devices WHERE id=@id";
                 cmd.Parameters.AddWithValue("@id", id);
-                cmd.ExecuteNonQuery();
+                return cmd.ExecuteNonQuery() > 0;
             }
         }
 
