@@ -317,5 +317,100 @@ CREATE TABLE IF NOT EXISTS devices (
             }
             return set;
         }
+
+        public void BackupDatabase(string destinationPath)
+        {
+            if (string.IsNullOrWhiteSpace(destinationPath))
+                throw new ArgumentException("Путь к файлу не может быть пустым", nameof(destinationPath));
+
+            var directory = Path.GetDirectoryName(destinationPath);
+            if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+                Directory.CreateDirectory(directory);
+
+            SQLiteConnection.ClearAllPools();
+            File.Copy(_dbPath, destinationPath, true);
+        }
+
+        public void RestoreDatabase(string sourcePath)
+        {
+            if (string.IsNullOrWhiteSpace(sourcePath) || !File.Exists(sourcePath))
+                throw new FileNotFoundException("Файл базы данных не найден", sourcePath);
+
+            SQLiteConnection.ClearAllPools();
+            Directory.CreateDirectory(Path.GetDirectoryName(_dbPath) ?? AppDomain.CurrentDomain.BaseDirectory);
+            File.Copy(sourcePath, _dbPath, true);
+            EnsureDatabase();
+        }
+
+        public void ReplaceDevices(IEnumerable<Device> devices)
+        {
+            if (devices == null)
+                throw new ArgumentNullException(nameof(devices));
+
+            using (var con = Open())
+            using (var tx = con.BeginTransaction())
+            using (var cmd = con.CreateCommand())
+            {
+                cmd.Transaction = tx;
+
+                cmd.CommandText = "DELETE FROM devices";
+                cmd.ExecuteNonQuery();
+
+                cmd.CommandText = "DELETE FROM cabinets";
+                cmd.ExecuteNonQuery();
+
+                var cabinetIds = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                var usedIps = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+                foreach (var device in devices)
+                {
+                    if (device == null)
+                        continue;
+
+                    var cabinetName = device.CabinetName?.Trim();
+                    var ip = device.IpAddress?.Trim();
+
+                    if (string.IsNullOrWhiteSpace(cabinetName) || string.IsNullOrWhiteSpace(ip))
+                        continue;
+
+                    if (!usedIps.Add(ip))
+                        continue;
+
+                    if (!cabinetIds.TryGetValue(cabinetName, out var cabinetId))
+                    {
+                        cmd.CommandText = "INSERT OR IGNORE INTO cabinets(name) VALUES(@cabName);";
+                        cmd.Parameters.Clear();
+                        cmd.Parameters.AddWithValue("@cabName", cabinetName);
+                        cmd.ExecuteNonQuery();
+
+                        cmd.CommandText = "SELECT id FROM cabinets WHERE name=@cabName;";
+                        cmd.Parameters.Clear();
+                        cmd.Parameters.AddWithValue("@cabName", cabinetName);
+                        var idObj = cmd.ExecuteScalar();
+                        if (idObj == null || idObj == DBNull.Value)
+                            throw new InvalidOperationException($"Не удалось сохранить кабинет '{cabinetName}' при импорте.");
+
+                        cabinetId = Convert.ToInt32(idObj);
+                        cabinetIds[cabinetName] = cabinetId;
+                    }
+
+                    var assignedAt = device.AssignedAt == default ? DateTime.Now : device.AssignedAt;
+
+                    cmd.CommandText = @"INSERT INTO devices(cabinet_id, type, name, ip, mac, description, assigned_at)
+                                        VALUES(@cabId, @type, @name, @ip, @mac, @desc, @assigned);";
+                    cmd.Parameters.Clear();
+                    cmd.Parameters.AddWithValue("@cabId", cabinetId);
+                    cmd.Parameters.AddWithValue("@type", device.Type.ToString());
+                    cmd.Parameters.AddWithValue("@name", string.IsNullOrWhiteSpace(device.Name) ? ip : device.Name);
+                    cmd.Parameters.AddWithValue("@ip", ip);
+                    cmd.Parameters.AddWithValue("@mac", string.IsNullOrWhiteSpace(device.MacAddress) ? (object)DBNull.Value : device.MacAddress);
+                    cmd.Parameters.AddWithValue("@desc", string.IsNullOrWhiteSpace(device.Description) ? (object)DBNull.Value : device.Description);
+                    cmd.Parameters.AddWithValue("@assigned", assignedAt.ToString("o"));
+                    cmd.ExecuteNonQuery();
+                }
+
+                tx.Commit();
+            }
+        }
     }
 }
