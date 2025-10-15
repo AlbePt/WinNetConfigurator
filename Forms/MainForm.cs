@@ -1059,7 +1059,7 @@ namespace WinNetConfigurator.Forms
         (string adapterId, string adapterName, string mac) GetSelectedAdapterFrom(ListBox list)
         {
             if (list.SelectedItem is AdapterInfo adapter)
-                return (adapter.Id, adapter.Name, adapter.Mac);
+                return (adapter.NetConnectionId, adapter.Name, adapter.MacAddress);
             MessageBox.Show("Выберите сетевой адаптер.");
             return (null, null, null);
         }
@@ -1165,13 +1165,17 @@ namespace WinNetConfigurator.Forms
         List<Machine> ApplyExportFilters()
         {
             var data = db.ListMachines();
-            var selectedLocations = clbExportLocations.CheckedItems.Cast<object>().Select(o => o.ToString()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var selectedLocations = new HashSet<string>(
+                clbExportLocations.CheckedItems.Cast<object>().Select(o => o.ToString()),
+                StringComparer.OrdinalIgnoreCase);
             if (selectedLocations.Any())
             {
                 data = data.Where(m => selectedLocations.Contains(m.CabinetName)).ToList();
             }
 
-            var statuses = clbExportStatuses.CheckedItems.Cast<object>().Select(o => o.ToString()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var statuses = new HashSet<string>(
+                clbExportStatuses.CheckedItems.Cast<object>().Select(o => o.ToString()),
+                StringComparer.OrdinalIgnoreCase);
             if (statuses.Any())
             {
                 data = data.Where(m => statuses.Contains(m.Source ?? string.Empty)).ToList();
