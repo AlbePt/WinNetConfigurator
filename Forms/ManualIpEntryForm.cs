@@ -19,7 +19,6 @@ namespace WinNetConfigurator.Forms
             MinimizeBox = false;
             Width = 420;
             Height = 240;
-            Font = new Font("Segoe UI", 10F, FontStyle.Regular, GraphicsUnit.Point, 204);
 
             var layout = new TableLayoutPanel
             {
@@ -50,10 +49,7 @@ namespace WinNetConfigurator.Forms
                 Margin = new Padding(0, 12, 0, 4)
             };
 
-            if (!string.IsNullOrWhiteSpace(initialIp) && !initialIp.Trim().StartsWith("192.168.", StringComparison.OrdinalIgnoreCase))
-                tbIp.Text = initialIp.Trim();
-            tbIp.Margin = new Padding(0, 0, 0, 6);
-            tbIp.Font = new Font("Segoe UI", 11F, FontStyle.Regular, GraphicsUnit.Point, 204);
+            tbIp.Text = initialIp ?? string.Empty;
 
             var buttons = new FlowLayoutPanel
             {
@@ -61,20 +57,8 @@ namespace WinNetConfigurator.Forms
                 Dock = DockStyle.Fill,
                 AutoSize = true
             };
-            var btnOk = new Button
-            {
-                Text = "Сохранить",
-                DialogResult = DialogResult.None,
-                AutoSize = true,
-                Padding = new Padding(14, 6, 14, 6)
-            };
-            var btnCancel = new Button
-            {
-                Text = "Отмена",
-                DialogResult = DialogResult.Cancel,
-                AutoSize = true,
-                Padding = new Padding(14, 6, 14, 6)
-            };
+            var btnOk = new Button { Text = "Сохранить", DialogResult = DialogResult.None, AutoSize = true };
+            var btnCancel = new Button { Text = "Отмена", DialogResult = DialogResult.Cancel, AutoSize = true };
             btnOk.Click += (_, __) => Confirm();
             buttons.Controls.Add(btnOk);
             buttons.Controls.Add(btnCancel);
