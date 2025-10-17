@@ -36,7 +36,7 @@ namespace WinNetConfigurator
             var settings = db.LoadSettings();
             if (!settings.IsComplete())
             {
-                using (var settingsForm = new SettingsForm(settings, db, null))
+                using (var settingsForm = new SettingsForm(settings))
                 {
                     if (settingsForm.ShowDialog() != DialogResult.OK)
                         return;
@@ -86,7 +86,7 @@ namespace WinNetConfigurator
                 string message = reason +
                     " Введите IP-адрес, закреплённый на маршрутизаторе для этого рабочего места. Запись будет сохранена только в базе данных.";
 
-                using (var dialog = new ManualIpEntryForm(message, null))
+                using (var dialog = new ManualIpEntryForm(message, config.IpAddress))
                 {
                     if (dialog.ShowDialog() == DialogResult.OK)
                     {
