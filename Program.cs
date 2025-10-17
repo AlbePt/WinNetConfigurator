@@ -86,7 +86,8 @@ namespace WinNetConfigurator
                 string message = reason +
                     " Введите IP-адрес, закреплённый на маршрутизаторе для этого рабочего места. Запись будет сохранена только в базе данных.";
 
-                using (var dialog = new ManualIpEntryForm(message, config.IpAddress))
+                var initialIp = isRouterNetwork ? string.Empty : config.IpAddress;
+                using (var dialog = new ManualIpEntryForm(message, initialIp))
                 {
                     if (dialog.ShowDialog() == DialogResult.OK)
                     {
