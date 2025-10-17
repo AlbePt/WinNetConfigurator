@@ -14,6 +14,12 @@ namespace WinNetConfigurator.Forms
         readonly ExcelExportService excel;
         readonly BindingList<Device> devices = new BindingList<Device>();
         readonly DataGridView grid = new DataGridView { Dock = DockStyle.Fill, ReadOnly = true, AutoGenerateColumns = false, SelectionMode = DataGridViewSelectionMode.FullRowSelect, MultiSelect = false };
+        readonly ContextMenuStrip settingsMenu = new ContextMenuStrip();
+        Button btnSettings;
+        string currentSortProperty;
+        bool sortAscending = true;
+
+        const string SettingsPassword = "3baRTfg6";
 
         public MainForm(DbService db, ExcelExportService excelService)
         {
@@ -45,10 +51,7 @@ namespace WinNetConfigurator.Forms
             var btnRefresh = new Button { Text = "Обновить", AutoSize = true };
             var btnExport = new Button { Text = "Экспорт в XLSX", AutoSize = true };
             var btnImportXlsx = new Button { Text = "Импорт из XLSX", AutoSize = true };
-            var btnImportDb = new Button { Text = "Импорт БД", AutoSize = true };
-            var btnBackup = new Button { Text = "Резервная копия БД", AutoSize = true };
-            var btnClearDb = new Button { Text = "Очистить БД", AutoSize = true };
-            var btnSettings = new Button { Text = "Настройки", AutoSize = true };
+            btnSettings = new Button { Text = "Настройки", AutoSize = true };
 
             btnAdd.Click += (_, __) => AddDevice();
             btnEdit.Click += (_, __) => EditSelected();
@@ -56,10 +59,9 @@ namespace WinNetConfigurator.Forms
             btnRefresh.Click += (_, __) => LoadDevices();
             btnExport.Click += (_, __) => Export();
             btnImportXlsx.Click += (_, __) => ImportFromExcel();
-            btnImportDb.Click += (_, __) => ImportDatabase();
-            btnBackup.Click += (_, __) => BackupDatabase();
-            btnClearDb.Click += (_, __) => ClearDatabase();
-            btnSettings.Click += (_, __) => EditSettings();
+            btnSettings.Click += (_, __) => ShowSettingsMenu();
+
+            InitializeSettingsMenu();
 
             panelButtons.Controls.AddRange(new Control[]
             {
@@ -69,24 +71,46 @@ namespace WinNetConfigurator.Forms
                 btnRefresh,
                 btnExport,
                 btnImportXlsx,
-                btnImportDb,
-                btnBackup,
-                btnSettings,
-                btnClearDb
+                btnSettings
             });
 
             grid.DataSource = devices;
-            grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Тип", DataPropertyName = nameof(Device.Type), Width = 120 });
-            grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Кабинет", DataPropertyName = nameof(Device.CabinetName), Width = 140 });
-            grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Название", DataPropertyName = nameof(Device.Name), Width = 180 });
-            grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "IP адрес", DataPropertyName = nameof(Device.IpAddress), Width = 120 });
-            grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "MAC адрес", DataPropertyName = nameof(Device.MacAddress), Width = 140 });
-            grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Описание", DataPropertyName = nameof(Device.Description), AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill });
-            grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Закреплено", DataPropertyName = nameof(Device.AssignedAt), Width = 150, DefaultCellStyle = new DataGridViewCellStyle { Format = "dd.MM.yyyy HH:mm" } });
+            grid.Columns.Add(CreateColumn("Тип", nameof(Device.Type), 120));
+            grid.Columns.Add(CreateColumn("Кабинет", nameof(Device.CabinetName), 140));
+            grid.Columns.Add(CreateColumn("Название", nameof(Device.Name), 180));
+            grid.Columns.Add(CreateColumn("IP адрес", nameof(Device.IpAddress), 120));
+            grid.Columns.Add(CreateColumn("MAC адрес", nameof(Device.MacAddress), 140));
+            grid.Columns.Add(CreateColumn("Описание", nameof(Device.Description), -1));
+            grid.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                HeaderText = "Закреплено",
+                DataPropertyName = nameof(Device.AssignedAt),
+                Width = 150,
+                DefaultCellStyle = new DataGridViewCellStyle { Format = "dd.MM.yyyy HH:mm" },
+                SortMode = DataGridViewColumnSortMode.Programmatic
+            });
             grid.CellFormatting += Grid_CellFormatting;
+            grid.ColumnHeaderMouseClick += Grid_ColumnHeaderMouseClick;
 
             Controls.Add(grid);
             Controls.Add(panelButtons);
+        }
+
+        DataGridViewColumn CreateColumn(string header, string property, int width)
+        {
+            var column = new DataGridViewTextBoxColumn
+            {
+                HeaderText = header,
+                DataPropertyName = property,
+                SortMode = DataGridViewColumnSortMode.Programmatic
+            };
+
+            if (width > 0)
+                column.Width = width;
+            else
+                column.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+
+            return column;
         }
 
         void Grid_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
@@ -114,6 +138,103 @@ namespace WinNetConfigurator.Forms
             devices.Clear();
             foreach (var device in db.GetDevices())
                 devices.Add(device);
+            ApplySort(currentSortProperty, preserveDirection: true);
+            if (!string.IsNullOrEmpty(currentSortProperty))
+            {
+                var column = grid.Columns.Cast<DataGridViewColumn>()
+                    .FirstOrDefault(c => c.DataPropertyName == currentSortProperty);
+                if (column != null)
+                    UpdateSortGlyph(column);
+            }
+        }
+
+        void InitializeSettingsMenu()
+        {
+            settingsMenu.Items.Clear();
+            settingsMenu.Items.Add("Настройки сети", null, (_, __) => EditSettings());
+            settingsMenu.Items.Add(new ToolStripSeparator());
+            settingsMenu.Items.Add("Импорт БД", null, (_, __) => ImportDatabase());
+            settingsMenu.Items.Add("Резервная копия БД", null, (_, __) => BackupDatabase());
+            settingsMenu.Items.Add("Очистить БД", null, (_, __) => ClearDatabase());
+        }
+
+        void ShowSettingsMenu()
+        {
+            if (btnSettings == null)
+                return;
+
+            if (!EnsureSettingsPassword())
+                return;
+
+            var location = new Point(0, btnSettings.Height);
+            settingsMenu.Show(btnSettings, location);
+        }
+
+        bool EnsureSettingsPassword()
+        {
+            using (var dialog = new PasswordPromptForm())
+            {
+                if (dialog.ShowDialog(this) != DialogResult.OK)
+                    return false;
+
+                if (!string.Equals(dialog.EnteredPassword, SettingsPassword, StringComparison.Ordinal))
+                {
+                    MessageBox.Show("Неверный пароль.", "Доступ запрещён", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        void Grid_ColumnHeaderMouseClick(object sender, DataGridViewCellMouseEventArgs e)
+        {
+            var column = grid.Columns[e.ColumnIndex];
+            if (string.IsNullOrEmpty(column.DataPropertyName))
+                return;
+
+            ApplySort(column.DataPropertyName);
+            UpdateSortGlyph(column);
+        }
+
+        void ApplySort(string propertyName, bool preserveDirection = false)
+        {
+            if (string.IsNullOrEmpty(propertyName))
+                return;
+
+            if (!preserveDirection)
+            {
+                if (string.Equals(currentSortProperty, propertyName, StringComparison.Ordinal))
+                    sortAscending = !sortAscending;
+                else
+                    sortAscending = true;
+            }
+
+            currentSortProperty = propertyName;
+
+            var property = TypeDescriptor.GetProperties(typeof(Device))[propertyName];
+            if (property == null)
+                return;
+
+            var ordered = sortAscending
+                ? devices.OrderBy(d => property.GetValue(d))
+                : devices.OrderByDescending(d => property.GetValue(d));
+
+            var sortedList = ordered.ToList();
+
+            devices.Clear();
+            foreach (var device in sortedList)
+                devices.Add(device);
+        }
+
+        void UpdateSortGlyph(DataGridViewColumn sortedColumn)
+        {
+            foreach (DataGridViewColumn column in grid.Columns)
+            {
+                column.HeaderCell.SortGlyphDirection = column == sortedColumn
+                    ? (sortAscending ? SortOrder.Ascending : SortOrder.Descending)
+                    : SortOrder.None;
+            }
         }
 
         Device GetSelectedDevice()
