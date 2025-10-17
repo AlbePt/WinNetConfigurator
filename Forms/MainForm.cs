@@ -20,14 +20,24 @@ namespace WinNetConfigurator.Forms
         readonly BindingList<Device> filteredDevices = new BindingList<Device>();
         readonly BindingSource bindingSource = new BindingSource();
         readonly DataGridView grid;
-        readonly ComboBox cbFilterType = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 180 };
+        readonly ComboBox cbFilterType = new ComboBox
+        {
+            DropDownStyle = ComboBoxStyle.DropDownList,
+            Width = 200,
+            MinimumSize = new Size(200, 32),
+            FlatStyle = FlatStyle.Flat,
+            IntegralHeight = false,
+            Margin = new Padding(0),
+            BackColor = Color.FromArgb(248, 249, 252)
+        };
         readonly Dictionary<string, TextBox> textFilters = new Dictionary<string, TextBox>();
         readonly Label lblSummary = new Label
         {
-            Dock = DockStyle.Bottom,
-            Height = 28,
+            Dock = DockStyle.Fill,
+            Height = 32,
             TextAlign = ContentAlignment.MiddleRight,
-            Padding = new Padding(0, 0, 16, 0),
+            Margin = new Padding(0, 12, 0, 0),
+            Padding = new Padding(0, 0, 8, 0),
             ForeColor = Color.FromArgb(110, 120, 139)
         };
         readonly Dictionary<string, Func<Device, object>> sortSelectors;
@@ -85,7 +95,8 @@ namespace WinNetConfigurator.Forms
                 RowHeadersVisible = false,
                 AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None,
                 CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal,
-                ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.None
+                ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.None,
+                RowTemplate = { Height = 44 }
             };
 
             dgv.ColumnHeadersHeight = 44;
@@ -95,7 +106,7 @@ namespace WinNetConfigurator.Forms
                 ForeColor = Color.FromArgb(52, 64, 84),
                 Font = new Font(Font, FontStyle.Bold),
                 Alignment = DataGridViewContentAlignment.MiddleLeft,
-                Padding = new Padding(12, 10, 12, 10)
+                Padding = new Padding(16, 12, 16, 12)
             };
             dgv.DefaultCellStyle = new DataGridViewCellStyle
             {
@@ -103,14 +114,15 @@ namespace WinNetConfigurator.Forms
                 ForeColor = Color.FromArgb(35, 40, 49),
                 SelectionBackColor = Color.FromArgb(216, 227, 255),
                 SelectionForeColor = Color.FromArgb(35, 40, 49),
-                Padding = new Padding(8, 6, 8, 6)
+                Padding = new Padding(12, 8, 12, 8),
+                WrapMode = DataGridViewTriState.False
             };
             dgv.AlternatingRowsDefaultCellStyle = new DataGridViewCellStyle
             {
                 BackColor = Color.FromArgb(246, 248, 252),
                 SelectionBackColor = Color.FromArgb(216, 227, 255),
                 SelectionForeColor = Color.FromArgb(35, 40, 49),
-                Padding = new Padding(8, 6, 8, 6)
+                Padding = new Padding(12, 8, 12, 8)
             };
             dgv.EnableHeadersVisualStyles = false;
 
@@ -158,44 +170,51 @@ namespace WinNetConfigurator.Forms
 
         void BuildLayout()
         {
-            var topContainer = new Panel
-            {
-                Dock = DockStyle.Top,
-                Padding = new Padding(20, 18, 20, 12),
-                BackColor = Color.FromArgb(242, 244, 248),
-                AutoSize = true,
-                AutoSizeMode = AutoSizeMode.GrowAndShrink
-            };
+            SuspendLayout();
+            Controls.Clear();
 
-            var layout = new TableLayoutPanel
+            var root = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
                 ColumnCount = 1,
-                AutoSize = true,
-                AutoSizeMode = AutoSizeMode.GrowAndShrink
+                RowCount = 3,
+                Padding = new Padding(24, 24, 24, 20),
+                BackColor = Color.Transparent
             };
-            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+            root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            root.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
 
-            var lblTitle = new Label
-            {
-                Text = "WinNetConfigurator",
-                Font = new Font("Segoe UI", 20F, FontStyle.Bold, GraphicsUnit.Point, 204),
-                ForeColor = Color.FromArgb(35, 40, 49),
-                AutoSize = true,
-                Margin = new Padding(0, 0, 0, 12)
-            };
-            layout.Controls.Add(lblTitle, 0, 0);
+            root.SuspendLayout();
 
-            var commandPanel = new FlowLayoutPanel
+            var commandPanel = BuildCommandPanel();
+            var headerPanel = BuildHeaderPanel(commandPanel);
+            root.Controls.Add(headerPanel, 0, 0);
+
+            var filtersSection = BuildFiltersSection();
+            root.Controls.Add(filtersSection, 0, 1);
+
+            var gridSection = BuildGridSection();
+            root.Controls.Add(gridSection, 0, 2);
+
+            root.ResumeLayout();
+
+            Controls.Add(root);
+            ResumeLayout();
+        }
+
+        FlowLayoutPanel BuildCommandPanel()
+        {
+            var panel = new FlowLayoutPanel
             {
-                Dock = DockStyle.Fill,
                 FlowDirection = FlowDirection.LeftToRight,
                 AutoSize = true,
                 WrapContents = true,
-                Margin = new Padding(0, 0, 0, 12)
+                Margin = new Padding(0),
+                Anchor = AnchorStyles.Right | AnchorStyles.Top
             };
+
             var btnAdd = CreateActionButton("Добавить устройство", true);
             var btnEdit = CreateActionButton("Редактировать");
             var btnDelete = CreateActionButton("Удалить");
@@ -212,7 +231,7 @@ namespace WinNetConfigurator.Forms
             btnImportXlsx.Click += (_, __) => ImportFromExcel();
             btnSettings.Click += (_, __) => EditSettings();
 
-            commandPanel.Controls.AddRange(new Control[]
+            panel.Controls.AddRange(new Control[]
             {
                 btnAdd,
                 btnEdit,
@@ -222,23 +241,149 @@ namespace WinNetConfigurator.Forms
                 btnImportXlsx,
                 btnSettings
             });
-            layout.Controls.Add(commandPanel, 0, 1);
 
+            return panel;
+        }
+
+        TableLayoutPanel BuildHeaderPanel(FlowLayoutPanel commandPanel)
+        {
+            var header = new TableLayoutPanel
+            {
+                ColumnCount = 2,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                Dock = DockStyle.Fill,
+                Margin = new Padding(0, 0, 0, 24)
+            };
+            header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+            header.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+
+            var titleStack = new FlowLayoutPanel
+            {
+                FlowDirection = FlowDirection.TopDown,
+                WrapContents = false,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                Margin = new Padding(0)
+            };
+
+            var lblTitle = new Label
+            {
+                Text = "WinNetConfigurator",
+                Font = new Font("Segoe UI", 24F, FontStyle.Bold, GraphicsUnit.Point, 204),
+                ForeColor = Color.FromArgb(30, 33, 45),
+                AutoSize = true,
+                Margin = new Padding(0)
+            };
+
+            var lblSubtitle = new Label
+            {
+                Text = "Централизованное управление сетевыми устройствами",
+                Font = new Font("Segoe UI", 10F, FontStyle.Regular, GraphicsUnit.Point, 204),
+                ForeColor = Color.FromArgb(110, 120, 139),
+                AutoSize = true,
+                Margin = new Padding(0, 8, 0, 0)
+            };
+
+            titleStack.Controls.Add(lblTitle);
+            titleStack.Controls.Add(lblSubtitle);
+
+            header.Controls.Add(titleStack, 0, 0);
+
+            commandPanel.Dock = DockStyle.None;
+            commandPanel.Margin = new Padding(32, 8, 0, 0);
+            header.Controls.Add(commandPanel, 1, 0);
+
+            return header;
+        }
+
+        Control BuildFiltersSection()
+        {
             var filtersPanel = new FlowLayoutPanel
             {
                 Dock = DockStyle.Fill,
                 FlowDirection = FlowDirection.LeftToRight,
                 AutoSize = true,
-                WrapContents = true
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                WrapContents = true,
+                Margin = new Padding(0),
+                Padding = new Padding(0)
             };
             BuildFilters(filtersPanel);
-            layout.Controls.Add(filtersPanel, 0, 2);
 
-            topContainer.Controls.Add(layout);
+            var card = new TableLayoutPanel
+            {
+                ColumnCount = 1,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                Dock = DockStyle.Fill,
+                BackColor = Color.White,
+                Padding = new Padding(24, 20, 24, 16),
+                Margin = new Padding(0, 0, 0, 24)
+            };
+            card.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+            card.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            card.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            card.Paint += DrawCardBorder;
 
-            Controls.Add(grid);
-            Controls.Add(lblSummary);
-            Controls.Add(topContainer);
+            var title = new Label
+            {
+                Text = "Фильтры и поиск",
+                Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 204),
+                ForeColor = Color.FromArgb(52, 64, 84),
+                AutoSize = true,
+                Margin = new Padding(0, 0, 0, 12)
+            };
+
+            card.Controls.Add(title, 0, 0);
+            card.Controls.Add(filtersPanel, 0, 1);
+
+            return card;
+        }
+
+        Control BuildGridSection()
+        {
+            var card = new TableLayoutPanel
+            {
+                ColumnCount = 1,
+                Dock = DockStyle.Fill,
+                BackColor = Color.White,
+                Padding = new Padding(24),
+                Margin = new Padding(0)
+            };
+            card.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+            card.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            card.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+            card.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            card.Paint += DrawCardBorder;
+
+            var title = new Label
+            {
+                Text = "Список устройств",
+                Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 204),
+                ForeColor = Color.FromArgb(52, 64, 84),
+                AutoSize = true,
+                Margin = new Padding(0, 0, 0, 16)
+            };
+
+            card.Controls.Add(title, 0, 0);
+
+            grid.Margin = new Padding(0);
+            card.Controls.Add(grid, 0, 1);
+
+            lblSummary.Margin = new Padding(0, 16, 0, 0);
+            card.Controls.Add(lblSummary, 0, 2);
+
+            return card;
+        }
+
+        void DrawCardBorder(object sender, PaintEventArgs e)
+        {
+            var rect = ((Control)sender).ClientRectangle;
+            rect.Width -= 1;
+            rect.Height -= 1;
+            using var pen = new Pen(Color.FromArgb(221, 225, 233));
+            e.Graphics.DrawRectangle(pen, rect);
         }
 
         Button CreateActionButton(string text, bool primary = false)
@@ -248,16 +393,19 @@ namespace WinNetConfigurator.Forms
                 Text = text,
                 AutoSize = true,
                 Margin = new Padding(0, 0, 12, 12),
-                Padding = new Padding(18, 8, 18, 8),
+                Padding = new Padding(20, 10, 20, 10),
                 FlatStyle = FlatStyle.Flat,
                 UseVisualStyleBackColor = false,
                 Cursor = Cursors.Hand,
-                BackColor = primary ? Color.FromArgb(71, 99, 255) : Color.FromArgb(229, 232, 239),
-                ForeColor = primary ? Color.White : Color.FromArgb(35, 40, 49)
+                BackColor = primary ? Color.FromArgb(71, 99, 255) : Color.White,
+                ForeColor = primary ? Color.White : Color.FromArgb(52, 64, 84),
+                Font = new Font(Font, FontStyle.Bold),
+                MinimumSize = new Size(0, 40)
             };
-            button.FlatAppearance.BorderSize = 0;
-            button.FlatAppearance.MouseOverBackColor = primary ? Color.FromArgb(92, 116, 255) : Color.FromArgb(214, 218, 226);
-            button.FlatAppearance.MouseDownBackColor = primary ? Color.FromArgb(57, 80, 211) : Color.FromArgb(198, 203, 213);
+            button.FlatAppearance.BorderSize = primary ? 0 : 1;
+            button.FlatAppearance.BorderColor = primary ? Color.FromArgb(71, 99, 255) : Color.FromArgb(208, 213, 222);
+            button.FlatAppearance.MouseOverBackColor = primary ? Color.FromArgb(92, 116, 255) : Color.FromArgb(243, 245, 250);
+            button.FlatAppearance.MouseDownBackColor = primary ? Color.FromArgb(57, 80, 211) : Color.FromArgb(229, 232, 239);
             return button;
         }
 
@@ -270,6 +418,8 @@ namespace WinNetConfigurator.Forms
             cbFilterType.Items.Add(new DeviceTypeFilterOption("Другое устройство", DeviceType.Other));
             cbFilterType.SelectedIndex = 0;
             cbFilterType.SelectedIndexChanged += (_, __) => ApplyFiltersAndSorting();
+            cbFilterType.Font = new Font("Segoe UI", 10F, FontStyle.Regular, GraphicsUnit.Point, 204);
+            cbFilterType.ForeColor = Color.FromArgb(35, 40, 49);
             typeContainer.Controls.Add(cbFilterType);
             panel.Controls.Add(typeContainer);
 
@@ -288,14 +438,16 @@ namespace WinNetConfigurator.Forms
                 FlowDirection = FlowDirection.TopDown,
                 AutoSize = true,
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
-                Margin = new Padding(0, 0, 16, 12)
+                Margin = new Padding(0, 0, 20, 16),
+                Padding = new Padding(0)
             };
             container.Controls.Add(new Label
             {
                 Text = caption,
                 AutoSize = true,
                 ForeColor = Color.FromArgb(110, 120, 139),
-                Margin = new Padding(0, 0, 0, 4)
+                Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 204),
+                Margin = new Padding(0, 0, 0, 6)
             });
             return container;
         }
@@ -305,7 +457,12 @@ namespace WinNetConfigurator.Forms
             var container = CreateFilterContainer(caption);
             var tb = new TextBox
             {
-                Width = 180
+                Width = 200,
+                MinimumSize = new Size(200, 32),
+                BorderStyle = BorderStyle.FixedSingle,
+                BackColor = Color.FromArgb(248, 249, 252),
+                Margin = new Padding(0),
+                Font = new Font("Segoe UI", 10F, FontStyle.Regular, GraphicsUnit.Point, 204)
             };
             tb.TextChanged += (_, __) => ApplyFiltersAndSorting();
             container.Controls.Add(tb);
