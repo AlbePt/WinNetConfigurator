@@ -1,10 +1,12 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
 using WinNetConfigurator.Models;
 using WinNetConfigurator.Services;
+using WinNetConfigurator.Utils;
 
 namespace WinNetConfigurator.Forms
 {
@@ -12,19 +14,23 @@ namespace WinNetConfigurator.Forms
     {
         readonly DbService db;
         readonly ExcelExportService excel;
+        readonly NetworkService network;
         readonly BindingList<Device> devices = new BindingList<Device>();
         readonly DataGridView grid = new DataGridView { Dock = DockStyle.Fill, ReadOnly = true, AutoGenerateColumns = false, SelectionMode = DataGridViewSelectionMode.FullRowSelect, MultiSelect = false };
         readonly ContextMenuStrip settingsMenu = new ContextMenuStrip();
         Button btnSettings;
         string currentSortProperty;
         bool sortAscending = true;
+        AppSettings settings;
 
         const string SettingsPassword = "3baRTfg6";
 
-        public MainForm(DbService db, ExcelExportService excelService)
+        public MainForm(DbService db, ExcelExportService excelService, NetworkService networkService, AppSettings initialSettings)
         {
             this.db = db;
             excel = excelService;
+            network = networkService;
+            settings = initialSettings ?? new AppSettings();
 
             Text = "WinNetConfigurator";
             Width = 960;
@@ -246,28 +252,317 @@ namespace WinNetConfigurator.Forms
 
         void AddDevice()
         {
-            var cabinets = db.GetCabinets().ToArray();
-            if (cabinets.Length == 0)
+            settings = db.LoadSettings();
+            if (!settings.IsComplete())
             {
-                MessageBox.Show("Сначала добавьте кабинеты в базе (через выбор кабинета при запуске).", "Нет кабинетов", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show(
+                    "Сначала заполните настройки сети в разделе \"Настройки\".",
+                    "Настройки сети",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
                 return;
             }
 
-            using (var dialog = new DeviceEditForm(null, cabinets))
+            var cabinets = db.GetCabinets();
+            using (var dialog = new CabinetSelectionForm(cabinets))
             {
-                if (dialog.ShowDialog(this) == DialogResult.OK)
-                {
-                    if (db.GetDeviceByIp(dialog.Result.IpAddress) != null)
-                    {
-                        MessageBox.Show("Такой IP уже зарегистрирован в базе.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        return;
-                    }
+                if (dialog.ShowDialog(this) != DialogResult.OK)
+                    return;
 
-                    dialog.Result.AssignedAt = DateTime.Now;
-                    db.InsertDevice(dialog.Result);
-                    LoadDevices();
+                var cabinetName = dialog.CabinetName;
+                if (string.IsNullOrWhiteSpace(cabinetName))
+                    return;
+
+                int cabinetId;
+                try
+                {
+                    cabinetId = db.EnsureCabinet(cabinetName);
                 }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(
+                        "Не удалось сохранить кабинет: " + ex.Message,
+                        "Ошибка",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error);
+                    return;
+                }
+
+                var cabinet = new Cabinet { Id = cabinetId, Name = cabinetName };
+                if (RunInitialWorkflow(cabinet))
+                    LoadDevices();
             }
+        }
+
+        bool RunInitialWorkflow(Cabinet cabinet)
+        {
+            var config = network.GetActiveConfiguration();
+            if (config == null || string.IsNullOrWhiteSpace(config.IpAddress))
+            {
+                MessageBox.Show(
+                    "Не удалось определить активный сетевой адаптер.",
+                    "Сеть",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+                return false;
+            }
+
+            var dnsList = string.IsNullOrWhiteSpace(settings.Dns2)
+                ? new[] { settings.Dns1 }
+                : new[] { settings.Dns1, settings.Dns2 };
+
+            if (config.IsWireless)
+            {
+                const string message =
+                    "Обнаружено подключение по Wi-Fi. Введите IP-адрес, закреплённый на маршрутизаторе для этого рабочего места. Запись будет сохранена только в базе данных.";
+
+                using (var dialog = new ManualIpEntryForm(message, config.IpAddress))
+                {
+                    if (dialog.ShowDialog(this) == DialogResult.OK)
+                    {
+                        SaveDevice(cabinet, dialog.EnteredIp, config);
+                        MessageBox.Show(
+                            $"IP {dialog.EnteredIp} записан в базу. Настройки компьютера не изменялись.",
+                            "Готово",
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Information);
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            if (Validation.IsRouterNetwork(config.IpAddress))
+            {
+                return HandleRouterNetwork(cabinet, config);
+            }
+
+            (System.Net.IPAddress Start, System.Net.IPAddress End) range;
+            try
+            {
+                range = settings.GetPoolRange();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    "Диапазон IP настроен некорректно: " + ex.Message,
+                    "Настройки сети",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+                return false;
+            }
+
+            if (!Validation.IsInRange(config.IpAddress, range.Start, range.End))
+            {
+                var answer = MessageBox.Show(
+                    "Текущий IP не входит в настроенный пул. Предложить свободный IP и применить настройки?",
+                    "IP вне пула",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Question);
+                if (answer == DialogResult.Yes)
+                {
+                    return OfferFreeIp(cabinet, config, dnsList);
+                }
+                return false;
+            }
+
+            bool maskMatches = string.Equals(config.SubnetMask, settings.Netmask, StringComparison.OrdinalIgnoreCase);
+            bool gatewayMatches = string.Equals(config.Gateway, settings.Gateway, StringComparison.OrdinalIgnoreCase);
+            var currentDns = (config.Dns ?? Array.Empty<string>()).Where(Validation.IsValidIPv4).ToArray();
+            bool dnsMatches = dnsList.SequenceEqual(currentDns);
+
+            if (maskMatches && gatewayMatches && dnsMatches)
+            {
+                var answer = MessageBox.Show(
+                    $"IP {config.IpAddress} уже настроен. Записать информацию в базу?",
+                    "Запись в БД",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Question);
+                if (answer == DialogResult.Yes)
+                {
+                    SaveDevice(cabinet, config.IpAddress, config);
+                    return true;
+                }
+                return false;
+            }
+
+            var fixAnswer = MessageBox.Show(
+                "Некоторые сетевые параметры не совпадают с настройками. Исправить и записать в базу?",
+                "Обновление настроек",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question);
+            if (fixAnswer == DialogResult.Yes)
+            {
+                try
+                {
+                    network.ApplyConfiguration(config.AdapterId, config.IpAddress, settings.Netmask, settings.Gateway, dnsList);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(
+                        "Не удалось применить настройки сети: " + ex.Message,
+                        "Ошибка",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error);
+                    return false;
+                }
+
+                SaveDevice(cabinet, config.IpAddress, config);
+                return true;
+            }
+
+            return false;
+        }
+
+        bool OfferFreeIp(Cabinet cabinet, NetworkConfiguration config, string[] dnsList)
+        {
+            var used = db.GetUsedIps();
+            List<string> available;
+            try
+            {
+                available = IPRange.Enumerate(settings.PoolStart, settings.PoolEnd)
+                    .Select(ip => ip.ToString())
+                    .Where(ip => !used.Contains(ip))
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    "Не удалось получить свободные адреса: " + ex.Message,
+                    "Ошибка",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+                return false;
+            }
+
+            if (available.Count == 0)
+            {
+                MessageBox.Show(
+                    "Свободных IP-адресов в пуле не осталось.",
+                    "Нет адресов",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+                return false;
+            }
+
+            string recommended = available.First();
+            using (var dialog = new FreeIpOfferForm(
+                available,
+                recommended,
+                "Выберите свободный IP из пула и примените его к этому рабочему месту."))
+            {
+                if (dialog.ShowDialog(this) != DialogResult.OK)
+                    return false;
+
+                var ip = dialog.SelectedIp;
+                try
+                {
+                    network.ApplyConfiguration(config.AdapterId, ip, settings.Netmask, settings.Gateway, dnsList);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(
+                        "Не удалось применить настройки сети: " + ex.Message,
+                        "Ошибка",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error);
+                    return false;
+                }
+
+                SaveDevice(cabinet, ip, config);
+                MessageBox.Show(
+                    $"IP {ip} закреплён и применён.",
+                    "Готово",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+                return true;
+            }
+
+            return false;
+        }
+
+        bool HandleRouterNetwork(Cabinet cabinet, NetworkConfiguration config)
+        {
+            var used = db.GetUsedIps();
+            List<string> available;
+            try
+            {
+                available = IPRange.Enumerate(settings.PoolStart, settings.PoolEnd)
+                    .Select(ip => ip.ToString())
+                    .Where(ip => !used.Contains(ip))
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    "Не удалось получить свободные адреса: " + ex.Message,
+                    "Ошибка",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+                return false;
+            }
+
+            string recommended = available.FirstOrDefault() ?? string.Empty;
+            using (var dialog = new FreeIpOfferForm(
+                available,
+                recommended,
+                "Компьютер подключён к сети маршрутизатора (192.168.x.x). Выберите свободный IP из пула или введите свой. Настройки компьютера изменены не будут.",
+                allowCustomEntry: true))
+            {
+                if (dialog.ShowDialog(this) != DialogResult.OK)
+                    return false;
+
+                var ip = dialog.SelectedIp;
+                if (!Validation.IsValidIPv4(ip))
+                {
+                    MessageBox.Show(
+                        "Введите корректный IP-адрес.",
+                        "Ошибка",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error);
+                    return false;
+                }
+
+                var existing = db.GetDeviceByIp(ip);
+                if (existing != null)
+                {
+                    MessageBox.Show(
+                        "Такой IP уже зарегистрирован в базе.",
+                        "Ошибка",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error);
+                    return false;
+                }
+
+                SaveDevice(cabinet, ip, config);
+                MessageBox.Show(
+                    $"IP {ip} записан в базу. Настройки компьютера не изменялись.",
+                    "Готово",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+                return true;
+            }
+
+            return false;
+        }
+
+        void SaveDevice(Cabinet cabinet, string ip, NetworkConfiguration config)
+        {
+            var existing = db.GetDeviceByIp(ip);
+            var device = existing ?? new Device();
+            device.CabinetId = cabinet.Id;
+            device.CabinetName = cabinet.Name;
+            device.Type = existing?.Type ?? DeviceType.Workstation;
+            device.Name = string.IsNullOrWhiteSpace(existing?.Name) ? Environment.MachineName : existing.Name;
+            device.IpAddress = ip;
+            device.MacAddress = string.IsNullOrWhiteSpace(config.MacAddress) ? existing?.MacAddress ?? string.Empty : config.MacAddress;
+            device.Description = string.IsNullOrWhiteSpace(existing?.Description) ? config.AdapterName : existing.Description;
+            device.AssignedAt = DateTime.Now;
+
+            if (existing == null)
+                db.InsertDevice(device);
+            else
+                db.UpdateDevice(device);
         }
 
         void EditSelected()
@@ -407,6 +702,7 @@ namespace WinNetConfigurator.Forms
                 if (dialog.ShowDialog(this) == DialogResult.OK)
                 {
                     db.SaveSettings(dialog.Result);
+                    settings = dialog.Result;
                     MessageBox.Show("Настройки обновлены.", "Настройки", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
             }
@@ -426,6 +722,7 @@ namespace WinNetConfigurator.Forms
 
             db.ClearDatabase();
             LoadDevices();
+            settings = db.LoadSettings();
             MessageBox.Show("База данных очищена.", "Готово", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
