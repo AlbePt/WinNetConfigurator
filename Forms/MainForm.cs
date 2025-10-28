@@ -575,7 +575,7 @@ namespace WinNetConfigurator.Forms
             }
 
             var cabinets = db.GetCabinets().ToArray();
-            using (var dialog = new DeviceEditForm(new Device
+            using (var dialog = new DeviceEditForm(db, new Device
             {
                 Id = selected.Id,
                 CabinetId = selected.CabinetId,

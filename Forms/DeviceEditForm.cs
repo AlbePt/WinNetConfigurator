@@ -2,23 +2,26 @@ using System;
 using System.Drawing;
 using System.Windows.Forms;
 using WinNetConfigurator.Models;
+using WinNetConfigurator.Services;
 using WinNetConfigurator.Utils;
 
 namespace WinNetConfigurator.Forms
 {
     public class DeviceEditForm : Form
     {
+        readonly DbService db;
         readonly ComboBox cbType = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList };
         readonly TextBox tbName = new TextBox();
         readonly TextBox tbIp = new TextBox();
         readonly TextBox tbMac = new TextBox();
         readonly TextBox tbDescription = new TextBox { Multiline = true, Height = 80 };
-        readonly ComboBox cbCabinet = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList };
+        readonly TextBox tbCabinet = new TextBox();
 
         public Device Result { get; private set; }
 
-        public DeviceEditForm(Device source, Cabinet[] cabinets)
+        public DeviceEditForm(DbService database, Device source, Cabinet[] cabinets)
         {
+            db = database;
             Text = source?.Id > 0 ? "Редактирование устройства" : "Новое устройство";
             StartPosition = FormStartPosition.CenterParent;
             FormBorderStyle = FormBorderStyle.FixedDialog;
@@ -43,17 +46,22 @@ namespace WinNetConfigurator.Forms
             };
             cbType.SelectedItem = source?.Type ?? DeviceType.Workstation;
 
-            foreach (var cabinet in cabinets)
+            if (cabinets?.Length > 0)
             {
-                cbCabinet.Items.Add(cabinet);
-                if (source != null && cabinet.Id == source.CabinetId)
-                    cbCabinet.SelectedItem = cabinet;
+                var autoComplete = new AutoCompleteStringCollection();
+                foreach (var cabinet in cabinets)
+                {
+                    if (!string.IsNullOrWhiteSpace(cabinet.Name))
+                        autoComplete.Add(cabinet.Name);
+                }
+                tbCabinet.AutoCompleteMode = AutoCompleteMode.SuggestAppend;
+                tbCabinet.AutoCompleteSource = AutoCompleteSource.CustomSource;
+                tbCabinet.AutoCompleteCustomSource = autoComplete;
             }
-            if (cbCabinet.SelectedIndex < 0 && cbCabinet.Items.Count > 0)
-                cbCabinet.SelectedIndex = 0;
 
             if (source != null)
             {
+                tbCabinet.Text = source.CabinetName;
                 tbName.Text = source.Name;
                 tbIp.Text = source.IpAddress;
                 tbMac.Text = source.MacAddress;
@@ -71,7 +79,7 @@ namespace WinNetConfigurator.Forms
             layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 65));
 
             AddRow(layout, "Тип", cbType);
-            AddRow(layout, "Кабинет", cbCabinet);
+            AddRow(layout, "Кабинет", tbCabinet);
             AddRow(layout, "Название", tbName);
             AddRow(layout, "IP адрес", tbIp);
             AddRow(layout, "MAC адрес", tbMac);
@@ -113,9 +121,10 @@ namespace WinNetConfigurator.Forms
                 MessageBox.Show("Выберите тип устройства.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
-            if (!(cbCabinet.SelectedItem is Cabinet selectedCabinet))
+            var cabinetName = tbCabinet.Text.Trim();
+            if (string.IsNullOrWhiteSpace(cabinetName))
             {
-                MessageBox.Show("Выберите кабинет.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Введите кабинет.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
             if (string.IsNullOrWhiteSpace(tbName.Text))
@@ -137,8 +146,16 @@ namespace WinNetConfigurator.Forms
             Result.IpAddress = tbIp.Text.Trim();
             Result.MacAddress = tbMac.Text.Trim();
             Result.Description = tbDescription.Text.Trim();
-            Result.CabinetId = selectedCabinet.Id;
-            Result.CabinetName = selectedCabinet.Name;
+            try
+            {
+                Result.CabinetId = db.EnsureCabinet(cabinetName);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Не удалось сохранить кабинет: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+            Result.CabinetName = cabinetName;
             Result.AssignedAt = original?.AssignedAt ?? DateTime.Now;
 
             DialogResult = DialogResult.OK;
