@@ -9,10 +9,8 @@ namespace WinNetConfigurator.Forms
 {
     public class CabinetSelectionForm : Form
     {
-        readonly ComboBox cbCabinets = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 220 };
-        readonly TextBox tbNewCabinet = new TextBox { Width = 220 };
-
-        public Cabinet SelectedCabinet { get; private set; }
+        readonly TextBox tbCabinet = new TextBox { Width = 220 };
+        public string CabinetName { get; private set; } = string.Empty;
 
         public CabinetSelectionForm(IEnumerable<Cabinet> cabinets)
         {
@@ -24,24 +22,28 @@ namespace WinNetConfigurator.Forms
             Width = 420;
             Height = 220;
 
+            var autoComplete = new AutoCompleteStringCollection();
             foreach (var cab in cabinets.OrderBy(c => c.Name))
-                cbCabinets.Items.Add(cab);
-            if (cbCabinets.Items.Count > 0)
-                cbCabinets.SelectedIndex = 0;
+            {
+                if (!string.IsNullOrWhiteSpace(cab.Name))
+                    autoComplete.Add(cab.Name);
+            }
+            tbCabinet.AutoCompleteMode = AutoCompleteMode.SuggestAppend;
+            tbCabinet.AutoCompleteSource = AutoCompleteSource.CustomSource;
+            tbCabinet.AutoCompleteCustomSource = autoComplete;
 
             var layout = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
                 Padding = new Padding(12),
                 ColumnCount = 2,
-                RowCount = 3,
+                RowCount = 2,
                 AutoSize = true
             };
             layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 45));
             layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 55));
 
-            AddRow(layout, "Существующий кабинет", cbCabinets);
-            AddRow(layout, "Новый кабинет", tbNewCabinet);
+            AddRow(layout, "Кабинет", tbCabinet);
 
             var buttons = new FlowLayoutPanel
             {
@@ -55,7 +57,7 @@ namespace WinNetConfigurator.Forms
             buttons.Controls.Add(btnOk);
             buttons.Controls.Add(btnCancel);
 
-            layout.Controls.Add(buttons, 0, 2);
+            layout.Controls.Add(buttons, 0, 1);
             layout.SetColumnSpan(buttons, 2);
 
             Controls.Add(layout);
@@ -73,23 +75,15 @@ namespace WinNetConfigurator.Forms
 
         void Confirm()
         {
-            if (!string.IsNullOrWhiteSpace(tbNewCabinet.Text))
+            if (!string.IsNullOrWhiteSpace(tbCabinet.Text))
             {
-                SelectedCabinet = new Cabinet { Name = tbNewCabinet.Text.Trim() };
+                CabinetName = tbCabinet.Text.Trim();
                 DialogResult = DialogResult.OK;
                 Close();
                 return;
             }
 
-            if (cbCabinets.SelectedItem is Cabinet cabinet)
-            {
-                SelectedCabinet = cabinet;
-                DialogResult = DialogResult.OK;
-                Close();
-                return;
-            }
-
-            MessageBox.Show("Выберите существующий кабинет или укажите новый.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            MessageBox.Show("Укажите кабинет.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
 }

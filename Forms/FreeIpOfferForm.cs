@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
+using WinNetConfigurator.Utils;
 
 namespace WinNetConfigurator.Forms
 {
@@ -11,12 +12,14 @@ namespace WinNetConfigurator.Forms
         readonly TextBox tbSelected = new TextBox { Dock = DockStyle.Fill };
         readonly ListBox lbAvailable = new ListBox { Height = 120, Width = 220, Dock = DockStyle.Fill, IntegralHeight = false };
         readonly HashSet<string> pool;
+        readonly bool allowCustomEntry;
 
         public string SelectedIp { get; private set; }
 
-        public FreeIpOfferForm(IEnumerable<string> available, string recommended)
+        public FreeIpOfferForm(IEnumerable<string> available, string recommended, string description, bool allowCustomEntry = false)
         {
             pool = new HashSet<string>(available ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
+            this.allowCustomEntry = allowCustomEntry;
 
             Text = "Выбор свободного IP";
             StartPosition = FormStartPosition.CenterParent;
@@ -47,7 +50,9 @@ namespace WinNetConfigurator.Forms
 
             var lblIntro = new Label
             {
-                Text = "Компьютер находится в сети 192.168.x.x. Выберите свободный IP из пула и закрепите его за рабочим местом.",
+                Text = string.IsNullOrWhiteSpace(description)
+                    ? "Выберите свободный IP из пула и закрепите его за рабочим местом."
+                    : description,
                 Dock = DockStyle.Fill,
                 AutoSize = true,
                 MaximumSize = new Size(360, 0)
@@ -94,8 +99,17 @@ namespace WinNetConfigurator.Forms
             }
             if (!pool.Contains(candidate))
             {
-                MessageBox.Show("Выбранный IP отсутствует среди свободных адресов. Выберите адрес из списка.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
+                if (!allowCustomEntry)
+                {
+                    MessageBox.Show("Выбранный IP отсутствует среди свободных адресов. Выберите адрес из списка.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                if (!Validation.IsValidIPv4(candidate))
+                {
+                    MessageBox.Show("Введите корректный IP-адрес.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
             }
             SelectedIp = candidate;
             DialogResult = DialogResult.OK;
