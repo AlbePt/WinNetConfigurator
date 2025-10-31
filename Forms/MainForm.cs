@@ -17,6 +17,7 @@ namespace WinNetConfigurator.Forms
         readonly ExcelExportService excel;
         readonly NetworkService network;
         readonly BindingList<Device> devices = new BindingList<Device>();
+        readonly List<Device> allDevices = new List<Device>();
         readonly DataGridView grid = new DataGridView { Dock = DockStyle.Fill, ReadOnly = true, AutoGenerateColumns = false, SelectionMode = DataGridViewSelectionMode.FullRowSelect, MultiSelect = false };
         readonly ContextMenuStrip settingsMenu = new ContextMenuStrip();
         readonly CabinetNameComparer cabinetComparer = new CabinetNameComparer();
@@ -29,6 +30,9 @@ namespace WinNetConfigurator.Forms
         readonly Panel assistantPanel = new Panel();
         readonly Label assistantTitle = new Label();
         readonly Label assistantText = new Label();
+        readonly FlowLayoutPanel searchPanel = new FlowLayoutPanel();
+        readonly TextBox txtSearch = new TextBox();
+        readonly Button btnClearSearch = new Button();
         readonly ToolTip uiToolTip = new ToolTip();
         StatusStrip statusStrip;
         ToolStripStatusLabel statusLabel;
@@ -111,6 +115,38 @@ namespace WinNetConfigurator.Forms
 
             uiToolTip.SetToolTip(assistantPanel, "Здесь будут появляться подсказки по действиям.");
 
+            searchPanel.Dock = DockStyle.Top;
+            searchPanel.Height = 36;
+            searchPanel.Padding = new Padding(12, 2, 12, 4);
+            searchPanel.FlowDirection = FlowDirection.LeftToRight;
+            searchPanel.WrapContents = false;
+
+            var lblSearch = new Label
+            {
+                Text = "Поиск:",
+                AutoSize = true,
+                TextAlign = ContentAlignment.MiddleLeft,
+                Margin = new Padding(0, 6, 6, 0)
+            };
+
+            txtSearch.Width = 220;
+            txtSearch.Margin = new Padding(0, 2, 6, 0);
+            txtSearch.TextChanged += (s, e) => ApplyFilter(txtSearch.Text);
+
+            btnClearSearch.Text = "×";
+            btnClearSearch.Width = 28;
+            btnClearSearch.Height = 24;
+            btnClearSearch.Margin = new Padding(0, 2, 0, 0);
+            btnClearSearch.Click += (s, e) =>
+            {
+                txtSearch.Text = "";
+                ApplyFilter("");
+            };
+
+            searchPanel.Controls.Add(lblSearch);
+            searchPanel.Controls.Add(txtSearch);
+            searchPanel.Controls.Add(btnClearSearch);
+
             grid.DataSource = devices;
 
             uiToolTip.SetToolTip(grid, "Двойной щелчок — редактирование. Правой кнопкой — контекстное меню.");
@@ -148,6 +184,7 @@ namespace WinNetConfigurator.Forms
             statusLabel = (ToolStripStatusLabel)statusStrip.Items[0];
 
             Controls.Add(grid);
+            Controls.Add(searchPanel);
             Controls.Add(assistantPanel);
             Controls.Add(panelButtons);
             Controls.Add(statusStrip);
@@ -197,6 +234,17 @@ namespace WinNetConfigurator.Forms
             }
         }
 
+        void EnsureSortGlyph()
+        {
+            if (string.IsNullOrEmpty(currentSortProperty))
+                return;
+
+            var column = grid.Columns.Cast<DataGridViewColumn>()
+                .FirstOrDefault(c => c.DataPropertyName == currentSortProperty);
+            if (column != null)
+                UpdateSortGlyph(column);
+        }
+
         void ShowAssistant(string scenario)
         {
             switch (scenario)
@@ -204,7 +252,7 @@ namespace WinNetConfigurator.Forms
                 case "empty":
                     assistantTitle.Text = "Что сделать первым?";
                     assistantText.Text =
-                        "Сейчас в базе нет устройств. Нажмите «Добавить» или «Импорт XLSX», " +
+                        "Сейчас в базе нет устройств. Нажмите «Добавить устройство» или «Импорт XLSX», " +
                         "чтобы заполнить список.";
                     break;
 
@@ -212,7 +260,20 @@ namespace WinNetConfigurator.Forms
                     assistantTitle.Text = "Подсказка";
                     assistantText.Text =
                         "Двойной щелчок по строке — редактирование. Правой кнопкой — действия. " +
-                        "Для обновления нажмите «Обновить».";
+                        "Используйте поиск выше, чтобы быстро найти нужный ПК.";
+                    break;
+
+                case "filter_empty":
+                    assistantTitle.Text = "Ничего не нашли";
+                    assistantText.Text =
+                        "Попробуйте ввести часть имени компьютера, кабинета или IP. " +
+                        "Кнопка «×» справа от поиска очищает фильтр.";
+                    break;
+
+                case "filter_results":
+                    assistantTitle.Text = "Фильтр применён";
+                    assistantText.Text =
+                        "Показаны только устройства, подходящие под запрос. Очистите поиск, чтобы увидеть все.";
                     break;
 
                 case "after_import":
@@ -230,28 +291,86 @@ namespace WinNetConfigurator.Forms
 
         void LoadDevices()
         {
+            allDevices.Clear();
+
+            devices.RaiseListChangedEvents = false;
             devices.Clear();
             foreach (var device in db.GetDevices())
-                devices.Add(device);
-            ApplySort(currentSortProperty, preserveDirection: true);
-            if (!string.IsNullOrEmpty(currentSortProperty))
             {
-                var column = grid.Columns.Cast<DataGridViewColumn>()
-                    .FirstOrDefault(c => c.DataPropertyName == currentSortProperty);
-                if (column != null)
-                    UpdateSortGlyph(column);
+                allDevices.Add(device);
+                devices.Add(device);
             }
+            devices.RaiseListChangedEvents = true;
 
-            ShowAssistant(devices.Count == 0 ? "empty" : "devices_loaded");
-            SetStatus(devices.Count == 0
+            ApplySort(currentSortProperty, preserveDirection: true);
+            EnsureSortGlyph();
+
+            ShowAssistant(allDevices.Count == 0 ? "empty" : "devices_loaded");
+            SetStatus(allDevices.Count == 0
                 ? "Устройства не найдены."
-                : $"Загружено устройств: {devices.Count}");
+                : $"Загружено устройств: {allDevices.Count}");
+
+            if (!string.IsNullOrWhiteSpace(txtSearch.Text))
+                ApplyFilter(txtSearch.Text);
         }
 
         void SetStatus(string text)
         {
             if (statusLabel != null)
                 statusLabel.Text = text;
+        }
+
+        void ApplyFilter(string term)
+        {
+            term = (term ?? string.Empty).Trim();
+
+            if (string.IsNullOrEmpty(term))
+            {
+                devices.RaiseListChangedEvents = false;
+                devices.Clear();
+                foreach (var device in allDevices)
+                    devices.Add(device);
+                devices.RaiseListChangedEvents = true;
+                devices.ResetBindings();
+
+                ApplySort(currentSortProperty, preserveDirection: true);
+                EnsureSortGlyph();
+
+                ShowAssistant(allDevices.Count == 0 ? "empty" : "devices_loaded");
+                SetStatus($"Показаны все устройства ({allDevices.Count})");
+                return;
+            }
+
+            var lower = term.ToLowerInvariant();
+
+            var filtered = allDevices.Where(d =>
+                (!string.IsNullOrEmpty(d.Name) && d.Name.ToLowerInvariant().Contains(lower)) ||
+                (!string.IsNullOrEmpty(d.CabinetName) && d.CabinetName.ToLowerInvariant().Contains(lower)) ||
+                (!string.IsNullOrEmpty(d.IpAddress) && d.IpAddress.ToLowerInvariant().Contains(lower)) ||
+                (!string.IsNullOrEmpty(d.MacAddress) && d.MacAddress.ToLowerInvariant().Contains(lower)) ||
+                (!string.IsNullOrEmpty(d.Description) && d.Description.ToLowerInvariant().Contains(lower))
+            ).ToList();
+
+            devices.RaiseListChangedEvents = false;
+            devices.Clear();
+            foreach (var device in filtered)
+                devices.Add(device);
+            devices.RaiseListChangedEvents = true;
+            devices.ResetBindings();
+
+            ApplySort(currentSortProperty, preserveDirection: true);
+            EnsureSortGlyph();
+
+            if (filtered.Count == 0)
+            {
+                ShowAssistant("filter_empty");
+                SetStatus($"Ничего не найдено по запросу «{term}»");
+            }
+            else
+            {
+                ShowAssistant("filter_results");
+                SetStatus($"Найдено: {filtered.Count}");
+            }
         }
 
         void InitializeSettingsMenu()
@@ -711,7 +830,8 @@ namespace WinNetConfigurator.Forms
 
             if (db.DeleteDevice(selected.Id))
             {
-                devices.Remove(selected);
+                allDevices.Remove(selected);
+                ApplyFilter(txtSearch.Text);
             }
             else
             {
