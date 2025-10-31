@@ -17,8 +17,6 @@ namespace WinNetConfigurator.Forms
 
         public AppSettings Result { get; private set; }
 
-        readonly Color _errorColor = Color.MistyRose;
-
         public SettingsForm(AppSettings current)
         {
             Text = "Настройки сети";
@@ -27,7 +25,7 @@ namespace WinNetConfigurator.Forms
             MaximizeBox = false;
             MinimizeBox = false;
             Width = 420;
-            Height = 380;
+            Height = 320;
 
             var layout = new TableLayoutPanel
             {
@@ -40,12 +38,12 @@ namespace WinNetConfigurator.Forms
             layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 45));
             layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 55));
 
-            AddRow(layout, "Начало пула", tbPoolStart, "Стартовый IP адрес для новых устройств.");
-            AddRow(layout, "Конец пула", tbPoolEnd, "Последний IP адрес, доступный для выдачи.");
-            AddRow(layout, "Маска", tbMask, "Маска подсети, применяемая к рабочим местам.");
-            AddRow(layout, "Шлюз", tbGateway, "IP маршрутизатора по умолчанию.");
-            AddRow(layout, "DNS 1", tbDns1, "Основной DNS-сервер для сети.");
-            AddRow(layout, "DNS 2", tbDns2, "Резервный DNS (можно оставить пустым).");
+            AddRow(layout, "Начало пула", tbPoolStart);
+            AddRow(layout, "Конец пула", tbPoolEnd);
+            AddRow(layout, "Маска", tbMask);
+            AddRow(layout, "Шлюз", tbGateway);
+            AddRow(layout, "DNS 1", tbDns1);
+            AddRow(layout, "DNS 2", tbDns2);
 
             var buttons = new FlowLayoutPanel
             {
@@ -75,36 +73,14 @@ namespace WinNetConfigurator.Forms
             }
         }
 
-        void AddRow(TableLayoutPanel layout, string label, TextBox control, string description)
+        void AddRow(TableLayoutPanel layout, string label, Control control)
         {
             var rowIndex = layout.RowStyles.Count;
-            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
             var lbl = new Label { Text = label, AutoSize = true, TextAlign = ContentAlignment.MiddleLeft, Dock = DockStyle.Fill };
-
-            var fieldLayout = new TableLayoutPanel
-            {
-                ColumnCount = 1,
-                Dock = DockStyle.Fill,
-                AutoSize = true
-            };
-            fieldLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 24));
-            fieldLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-
             control.Dock = DockStyle.Fill;
-            var hint = new Label
-            {
-                Text = description,
-                AutoSize = true,
-                ForeColor = Color.DimGray,
-                Dock = DockStyle.Fill,
-                Margin = new Padding(0, 2, 0, 0)
-            };
-
-            fieldLayout.Controls.Add(control, 0, 0);
-            fieldLayout.Controls.Add(hint, 0, 1);
-
             layout.Controls.Add(lbl, 0, rowIndex);
-            layout.Controls.Add(fieldLayout, 1, rowIndex);
+            layout.Controls.Add(control, 1, rowIndex);
         }
 
         void Save()
@@ -128,12 +104,18 @@ namespace WinNetConfigurator.Forms
 
         bool Validate(AppSettings settings)
         {
-            ResetFieldHighlights();
-
-            if (!ValidateRequiredIp(tbPoolStart, settings.PoolStart, "Введите корректный IP-адрес начала пула."))
+            if (!Validation.IsValidIPv4(settings.PoolStart))
+            {
+                MessageBox.Show("Введите корректный IP-адрес начала пула.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                tbPoolStart.Focus();
                 return false;
-            if (!ValidateRequiredIp(tbPoolEnd, settings.PoolEnd, "Введите корректный IP-адрес конца пула."))
+            }
+            if (!Validation.IsValidIPv4(settings.PoolEnd))
+            {
+                MessageBox.Show("Введите корректный IP-адрес конца пула.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                tbPoolEnd.Focus();
                 return false;
+            }
             try
             {
                 var range = settings.GetPoolRange();
@@ -142,65 +124,35 @@ namespace WinNetConfigurator.Forms
             }
             catch
             {
-                Highlight(tbPoolStart);
-                Highlight(tbPoolEnd);
                 MessageBox.Show("Начало пула должно быть меньше или равно концу.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 tbPoolStart.Focus();
                 return false;
             }
-            if (!ValidateRequiredMask(tbMask, settings.Netmask))
+            if (!Validation.IsValidMask(settings.Netmask))
+            {
+                MessageBox.Show("Введите корректную маску сети.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                tbMask.Focus();
                 return false;
-            if (!ValidateRequiredIp(tbGateway, settings.Gateway, "Введите корректный адрес шлюза."))
+            }
+            if (!Validation.IsValidIPv4(settings.Gateway))
+            {
+                MessageBox.Show("Введите корректный адрес шлюза.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                tbGateway.Focus();
                 return false;
-            if (!ValidateRequiredIp(tbDns1, settings.Dns1, "Введите корректный адрес DNS."))
+            }
+            if (!Validation.IsValidIPv4(settings.Dns1))
+            {
+                MessageBox.Show("Введите корректный адрес DNS.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                tbDns1.Focus();
                 return false;
+            }
             if (!string.IsNullOrWhiteSpace(settings.Dns2) && !Validation.IsValidIPv4(settings.Dns2))
             {
-                Highlight(tbDns2);
                 MessageBox.Show("Введите корректный адрес второго DNS или оставьте поле пустым.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 tbDns2.Focus();
                 return false;
             }
             return true;
-        }
-
-        void ResetFieldHighlights()
-        {
-            tbPoolStart.BackColor = SystemColors.Window;
-            tbPoolEnd.BackColor = SystemColors.Window;
-            tbMask.BackColor = SystemColors.Window;
-            tbGateway.BackColor = SystemColors.Window;
-            tbDns1.BackColor = SystemColors.Window;
-            tbDns2.BackColor = SystemColors.Window;
-        }
-
-        bool ValidateRequiredIp(TextBox textBox, string value, string message)
-        {
-            if (string.IsNullOrWhiteSpace(value) || !Validation.IsValidIPv4(value))
-            {
-                Highlight(textBox);
-                MessageBox.Show(message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                textBox.Focus();
-                return false;
-            }
-            return true;
-        }
-
-        bool ValidateRequiredMask(TextBox textBox, string value)
-        {
-            if (string.IsNullOrWhiteSpace(value) || !Validation.IsValidMask(value))
-            {
-                Highlight(textBox);
-                MessageBox.Show("Введите корректную маску сети.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                textBox.Focus();
-                return false;
-            }
-            return true;
-        }
-
-        void Highlight(TextBox textBox)
-        {
-            textBox.BackColor = _errorColor;
         }
     }
 }
