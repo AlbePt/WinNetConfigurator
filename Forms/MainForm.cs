@@ -25,6 +25,10 @@ namespace WinNetConfigurator.Forms
         bool sortAscending = true;
         AppSettings settings;
 
+        readonly Panel assistantPanel = new Panel();
+        readonly Label assistantTitle = new Label();
+        readonly Label assistantText = new Label();
+
         const string SettingsPassword = "3baRTfg6";
 
         public MainForm(DbService db, ExcelExportService excelService, NetworkService networkService, AppSettings initialSettings)
@@ -85,6 +89,25 @@ namespace WinNetConfigurator.Forms
                 btnSettings
             });
 
+            assistantPanel.Dock = DockStyle.Top;
+            assistantPanel.Height = 56;
+            assistantPanel.Padding = new Padding(12, 6, 12, 6);
+            assistantPanel.BackColor = Color.FromArgb(255, 252, 230);
+
+            assistantTitle.AutoSize = true;
+            assistantTitle.Font = new Font(Font, FontStyle.Bold);
+            assistantTitle.Text = "Подсказка";
+            assistantTitle.Location = new Point(0, 0);
+
+            assistantText.AutoSize = true;
+            assistantText.Width = 600;
+            assistantText.MaximumSize = new Size(800, 0);
+
+            assistantPanel.Controls.Add(assistantTitle);
+            assistantPanel.Controls.Add(assistantText);
+            assistantText.Left = 0;
+            assistantText.Top = assistantTitle.Bottom + 2;
+
             grid.DataSource = devices;
 
             grid.Columns.Add(new DataGridViewTextBoxColumn
@@ -117,6 +140,7 @@ namespace WinNetConfigurator.Forms
             grid.ColumnHeaderMouseClick += Grid_ColumnHeaderMouseClick;
 
             Controls.Add(grid);
+            Controls.Add(assistantPanel);
             Controls.Add(panelButtons);
         }
 
@@ -164,6 +188,37 @@ namespace WinNetConfigurator.Forms
             }
         }
 
+        void ShowAssistant(string scenario)
+        {
+            switch (scenario)
+            {
+                case "empty":
+                    assistantTitle.Text = "Что сделать первым?";
+                    assistantText.Text =
+                        "Сейчас в базе нет устройств. Нажмите «Добавить устройство» или «Импорт из XLSX», " +
+                        "чтобы заполнить список.";
+                    break;
+
+                case "devices_loaded":
+                    assistantTitle.Text = "Подсказка";
+                    assistantText.Text =
+                        "Двойной щелчок по строке — редактирование. Правой кнопкой — действия. " +
+                        "Для обновления нажмите «Обновить».";
+                    break;
+
+                case "after_import":
+                    assistantTitle.Text = "Импорт завершён";
+                    assistantText.Text =
+                        "Проверьте, что кабинеты и IP распределены корректно. При необходимости откройте «Настройки».";
+                    break;
+
+                default:
+                    assistantTitle.Text = "Подсказка";
+                    assistantText.Text = "Выберите строку, чтобы редактировать устройство или удалить его.";
+                    break;
+            }
+        }
+
         void LoadDevices()
         {
             devices.Clear();
@@ -177,6 +232,8 @@ namespace WinNetConfigurator.Forms
                 if (column != null)
                     UpdateSortGlyph(column);
             }
+
+            ShowAssistant(devices.Count == 0 ? "empty" : "devices_loaded");
         }
 
         void InitializeSettingsMenu()
