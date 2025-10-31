@@ -16,14 +16,27 @@ namespace WinNetConfigurator
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
-            var db = new DbService();
-            var exporter = new ExcelExportService(db);
-            var network = new NetworkService();
-            var settings = db.LoadSettings();
+            string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            System.IO.Directory.SetCurrentDirectory(baseDir);
 
-            if (settings == null || !settings.IsComplete())
+            Application.ThreadException += (s, e) =>
             {
-                using (var settingsForm = new SettingsForm(settings ?? new AppSettings()))
+                Logger.Log("UI ThreadException: " + e.Exception);
+                MessageBox.Show(e.Exception.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            };
+            AppDomain.CurrentDomain.UnhandledException += (s, e) =>
+            {
+                Logger.Log("UnhandledException: " + e.ExceptionObject);
+            };
+
+            var db = new DbService();
+            var network = new NetworkService();
+            var exporter = new ExcelExportService();
+
+            var settings = db.LoadSettings();
+            if (!settings.IsComplete())
+            {
+                using (var settingsForm = new SettingsForm(settings))
                 {
                     if (settingsForm.ShowDialog() != DialogResult.OK)
                         return;
@@ -32,20 +45,7 @@ namespace WinNetConfigurator
                 }
             }
 
-            using (var roleForm = new RoleSelectForm())
-            {
-                if (roleForm.ShowDialog() != DialogResult.OK)
-                    return;
-
-                if (roleForm.SelectedRole == UserRole.Operator)
-                {
-                    Application.Run(new AssistantForm(db, network, settings));
-                }
-                else
-                {
-                    Application.Run(new MainForm(db, exporter, network, settings));
-                }
-            }
+            Application.Run(new MainForm(db, exporter, network, settings));
         }
     }
 }
