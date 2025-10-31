@@ -61,8 +61,6 @@
     <Compile Include="Models\DeviceType.cs" />
     <Compile Include="Models\NetworkConfiguration.cs" />
     <Compile Include="Models\Notification.cs" />
-    <Compile Include="Models\UserRole.cs" />
-    <Compile Include="Models\UserSession.cs" />
     <Compile Include="Models\TaskProgressReport.cs" />
     <Compile Include="Services\DbService.cs" />
     <Compile Include="Services\ExcelExportService.cs" />
