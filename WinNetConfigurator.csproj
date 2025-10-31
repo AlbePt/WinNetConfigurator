@@ -46,11 +46,29 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Program.cs" />
-    <Compile Include="Forms\*.cs" />
-    <Compile Include="Models\*.cs" />
-    <Compile Include="Services\*.cs" />
-    <Compile Include="Utils\*.cs" />
-    <Compile Include="UI\*.cs" />
+    <Compile Include="Forms\MainForm.cs" />
+    <Compile Include="Forms\AssistantForm.cs" />
+    <Compile Include="Forms\SettingsForm.cs" />
+    <Compile Include="Forms\CabinetSelectionForm.cs" />
+    <Compile Include="Forms\DeviceEditForm.cs" />
+    <Compile Include="Forms\FreeIpOfferForm.cs" />
+    <Compile Include="Forms\ManualIpEntryForm.cs" />
+    <Compile Include="Forms\RouterIpActionForm.cs" />
+    <Compile Include="Forms\RoleSelectForm.cs" />
+    <Compile Include="Forms\PasswordPromptForm.cs" />
+    <Compile Include="Models\AppSettings.cs" />
+    <Compile Include="Models\Cabinet.cs" />
+    <Compile Include="Models\Device.cs" />
+    <Compile Include="Models\DeviceType.cs" />
+    <Compile Include="Models\NetworkConfiguration.cs" />
+    <Compile Include="Services\DbService.cs" />
+    <Compile Include="Services\NetworkService.cs" />
+    <Compile Include="Services\ExcelExportService.cs" />
+    <Compile Include="Utils\IPRange.cs" />
+    <Compile Include="Utils\SortingComparers.cs" />
+    <Compile Include="Utils\Validation.cs" />
+    <Compile Include="Utils\Logger.cs" />
+    <Compile Include="UI\UiDefaults.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
