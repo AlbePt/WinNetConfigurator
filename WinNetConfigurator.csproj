@@ -55,17 +55,22 @@
     <Compile Include="Forms\RouterIpActionForm.cs" />
     <Compile Include="Forms\PasswordPromptForm.cs" />
     <Compile Include="Models\AppSettings.cs" />
+    <Compile Include="Models\BackgroundTask.cs" />
     <Compile Include="Models\Cabinet.cs" />
     <Compile Include="Models\Device.cs" />
     <Compile Include="Models\DeviceType.cs" />
     <Compile Include="Models\NetworkConfiguration.cs" />
+    <Compile Include="Models\Notification.cs" />
+    <Compile Include="Models\TaskProgressReport.cs" />
     <Compile Include="Services\DbService.cs" />
-    <Compile Include="Services\NetworkService.cs" />
     <Compile Include="Services\ExcelExportService.cs" />
+    <Compile Include="Services\NetworkService.cs" />
+    <Compile Include="Services\NotificationService.cs" />
+    <Compile Include="Services\TaskQueueService.cs" />
     <Compile Include="Utils\IPRange.cs" />
+    <Compile Include="Utils\Logger.cs" />
     <Compile Include="Utils\SortingComparers.cs" />
     <Compile Include="Utils\Validation.cs" />
-    <Compile Include="Utils\Logger.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
