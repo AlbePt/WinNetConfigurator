@@ -16,27 +16,14 @@ namespace WinNetConfigurator
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
-            string baseDir = AppDomain.CurrentDomain.BaseDirectory;
-            System.IO.Directory.SetCurrentDirectory(baseDir);
-
-            Application.ThreadException += (s, e) =>
-            {
-                Logger.Log("UI ThreadException: " + e.Exception);
-                MessageBox.Show(e.Exception.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            };
-            AppDomain.CurrentDomain.UnhandledException += (s, e) =>
-            {
-                Logger.Log("UnhandledException: " + e.ExceptionObject);
-            };
-
             var db = new DbService();
+            var exporter = new ExcelExportService(db);
             var network = new NetworkService();
-            var exporter = new ExcelExportService();
-
             var settings = db.LoadSettings();
-            if (!settings.IsComplete())
+
+            if (settings == null || !settings.IsComplete())
             {
-                using (var settingsForm = new SettingsForm(settings))
+                using (var settingsForm = new SettingsForm(settings ?? new AppSettings()))
                 {
                     if (settingsForm.ShowDialog() != DialogResult.OK)
                         return;
@@ -45,7 +32,20 @@ namespace WinNetConfigurator
                 }
             }
 
-            Application.Run(new MainForm(db, exporter, network, settings));
+            using (var roleForm = new RoleSelectForm())
+            {
+                if (roleForm.ShowDialog() != DialogResult.OK)
+                    return;
+
+                if (roleForm.SelectedRole == UserRole.Operator)
+                {
+                    Application.Run(new AssistantForm(db, network, settings));
+                }
+                else
+                {
+                    Application.Run(new MainForm(db, exporter, network, settings));
+                }
+            }
         }
     }
 }
