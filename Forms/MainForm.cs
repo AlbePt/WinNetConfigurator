@@ -454,9 +454,11 @@ namespace WinNetConfigurator.Forms
             return false;
         }
 
-        bool OfferFreeIp(Cabinet cabinet, NetworkConfiguration config, string[] dnsList)
+        bool TrySelectFreeIp(string prompt, out string selectedIp)
         {
-            var used = db.GetUsedIps();
+            selectedIp = null;
+
+            var used = new HashSet<string>(db.GetUsedIps());
             List<string> available;
             try
             {
@@ -486,39 +488,46 @@ namespace WinNetConfigurator.Forms
             }
 
             string recommended = available.First();
-            using (var dialog = new FreeIpOfferForm(
-                available,
-                recommended,
-                "Выберите свободный IP из пула и примените его к этому рабочему месту."))
+            using (var dialog = new FreeIpOfferForm(available, recommended, prompt))
             {
                 if (dialog.ShowDialog(this) != DialogResult.OK)
                     return false;
 
-                var ip = dialog.SelectedIp;
-                try
-                {
-                    network.ApplyConfiguration(config.AdapterId, ip, settings.Netmask, settings.Gateway, dnsList);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show(
-                        "Не удалось применить настройки сети: " + ex.Message,
-                        "Ошибка",
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Error);
-                    return false;
-                }
-
-                SaveDevice(cabinet, ip, config);
-                MessageBox.Show(
-                    $"IP {ip} закреплён и применён.",
-                    "Готово",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Information);
+                selectedIp = dialog.SelectedIp;
                 return true;
             }
+        }
 
-            return false;
+        bool OfferFreeIp(Cabinet cabinet, NetworkConfiguration config, string[] dnsList)
+        {
+            if (!TrySelectFreeIp(
+                "Выберите свободный IP из пула и примените его к этому рабочему месту.",
+                out var ip))
+            {
+                return false;
+            }
+
+            try
+            {
+                network.ApplyConfiguration(config.AdapterId, ip, settings.Netmask, settings.Gateway, dnsList);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    "Не удалось применить настройки сети: " + ex.Message,
+                    "Ошибка",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+                return false;
+            }
+
+            SaveDevice(cabinet, ip, config);
+            MessageBox.Show(
+                $"IP {ip} закреплён и применён.",
+                "Готово",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+            return true;
         }
 
         bool HandleRouterNetwork(Cabinet cabinet, NetworkConfiguration config, string[] dnsList)
@@ -531,9 +540,16 @@ namespace WinNetConfigurator.Forms
                 switch (dialog.SelectedAction)
                 {
                     case RouterIpAction.BindOnly:
-                        SaveDevice(cabinet, config.IpAddress, config);
+                        if (!TrySelectFreeIp(
+                            "Выберите свободный IP из пула для закрепления в базе.",
+                            out var selectedIp))
+                        {
+                            return false;
+                        }
+
+                        SaveDevice(cabinet, selectedIp, config);
                         MessageBox.Show(
-                            $"IP {config.IpAddress} записан в базу. Настройки компьютера не изменялись.",
+                            $"IP {selectedIp} закреплён в базе. Настройки компьютера не изменялись.",
                             "Готово",
                             MessageBoxButtons.OK,
                             MessageBoxIcon.Information);
