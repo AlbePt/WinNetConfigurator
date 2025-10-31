@@ -66,6 +66,7 @@
     <Compile Include="Utils\SortingComparers.cs" />
     <Compile Include="Utils\Validation.cs" />
     <Compile Include="Utils\Logger.cs" />
+    <Compile Include="UI\UiDefaults.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

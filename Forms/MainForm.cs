@@ -7,6 +7,7 @@ using System.Windows.Forms;
 using WinNetConfigurator.Models;
 using WinNetConfigurator.Services;
 using WinNetConfigurator.Utils;
+using WinNetConfigurator.UI;
 
 namespace WinNetConfigurator.Forms
 {
@@ -28,6 +29,9 @@ namespace WinNetConfigurator.Forms
         readonly Panel assistantPanel = new Panel();
         readonly Label assistantTitle = new Label();
         readonly Label assistantText = new Label();
+        readonly ToolTip uiToolTip = new ToolTip();
+        StatusStrip statusStrip;
+        ToolStripStatusLabel statusLabel;
 
         const string SettingsPassword = "3baRTfg6";
 
@@ -60,13 +64,13 @@ namespace WinNetConfigurator.Forms
                 Padding = new Padding(12, 10, 12, 6)
             };
 
-            var btnAdd = new Button { Text = "Добавить устройство", AutoSize = true };
-            var btnEdit = new Button { Text = "Редактировать", AutoSize = true };
-            var btnDelete = new Button { Text = "Удалить", AutoSize = true };
-            var btnRefresh = new Button { Text = "Обновить", AutoSize = true };
-            var btnExport = new Button { Text = "Экспорт в XLSX", AutoSize = true };
-            var btnImportXlsx = new Button { Text = "Импорт из XLSX", AutoSize = true };
-            btnSettings = new Button { Text = "Настройки", AutoSize = true };
+            var btnAdd = UiDefaults.CreateTopButton("Добавить", "Добавить новое устройство в базу", uiToolTip);
+            var btnEdit = UiDefaults.CreateTopButton("Изменить", "Изменить выделенное устройство", uiToolTip);
+            var btnDelete = UiDefaults.CreateTopButton("Удалить", "Удалить выделенное устройство", uiToolTip);
+            var btnRefresh = UiDefaults.CreateTopButton("Обновить", "Перечитать список из базы", uiToolTip);
+            var btnExport = UiDefaults.CreateTopButton("Экспорт XLSX", "Выгрузить устройства в Excel", uiToolTip);
+            var btnImportXlsx = UiDefaults.CreateTopButton("Импорт XLSX", "Загрузить устройства из Excel-файла", uiToolTip);
+            btnSettings = UiDefaults.CreateTopButton("Настройки", "Параметры подключения, диапазон IP и т.п.", uiToolTip);
 
             btnAdd.Click += (_, __) => AddDevice();
             btnEdit.Click += (_, __) => EditSelected();
@@ -78,16 +82,13 @@ namespace WinNetConfigurator.Forms
 
             InitializeSettingsMenu();
 
-            panelButtons.Controls.AddRange(new Control[]
-            {
-                btnAdd,
-                btnEdit,
-                btnDelete,
-                btnRefresh,
-                btnExport,
-                btnImportXlsx,
-                btnSettings
-            });
+            panelButtons.Controls.Add(btnAdd);
+            panelButtons.Controls.Add(btnEdit);
+            panelButtons.Controls.Add(btnDelete);
+            panelButtons.Controls.Add(btnRefresh);
+            panelButtons.Controls.Add(btnExport);
+            panelButtons.Controls.Add(btnImportXlsx);
+            panelButtons.Controls.Add(btnSettings);
 
             assistantPanel.Dock = DockStyle.Top;
             assistantPanel.Height = 56;
@@ -108,7 +109,11 @@ namespace WinNetConfigurator.Forms
             assistantText.Left = 0;
             assistantText.Top = assistantTitle.Bottom + 2;
 
+            uiToolTip.SetToolTip(assistantPanel, "Здесь будут появляться подсказки по действиям.");
+
             grid.DataSource = devices;
+
+            uiToolTip.SetToolTip(grid, "Двойной щелчок — редактирование. Правой кнопкой — контекстное меню.");
 
             grid.Columns.Add(new DataGridViewTextBoxColumn
             {
@@ -139,9 +144,13 @@ namespace WinNetConfigurator.Forms
             grid.CellFormatting += Grid_CellFormatting;
             grid.ColumnHeaderMouseClick += Grid_ColumnHeaderMouseClick;
 
+            statusStrip = UiDefaults.CreateStatusStrip();
+            statusLabel = (ToolStripStatusLabel)statusStrip.Items[0];
+
             Controls.Add(grid);
             Controls.Add(assistantPanel);
             Controls.Add(panelButtons);
+            Controls.Add(statusStrip);
         }
 
         DataGridViewColumn CreateColumn(string header, string property, int width)
@@ -195,7 +204,7 @@ namespace WinNetConfigurator.Forms
                 case "empty":
                     assistantTitle.Text = "Что сделать первым?";
                     assistantText.Text =
-                        "Сейчас в базе нет устройств. Нажмите «Добавить устройство» или «Импорт из XLSX», " +
+                        "Сейчас в базе нет устройств. Нажмите «Добавить» или «Импорт XLSX», " +
                         "чтобы заполнить список.";
                     break;
 
@@ -234,6 +243,15 @@ namespace WinNetConfigurator.Forms
             }
 
             ShowAssistant(devices.Count == 0 ? "empty" : "devices_loaded");
+            SetStatus(devices.Count == 0
+                ? "Устройства не найдены."
+                : $"Загружено устройств: {devices.Count}");
+        }
+
+        void SetStatus(string text)
+        {
+            if (statusLabel != null)
+                statusLabel.Text = text;
         }
 
         void InitializeSettingsMenu()
