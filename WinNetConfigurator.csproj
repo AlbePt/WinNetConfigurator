@@ -52,6 +52,7 @@
     <Compile Include="Forms\DeviceEditForm.cs" />
     <Compile Include="Forms\FreeIpOfferForm.cs" />
     <Compile Include="Forms\ManualIpEntryForm.cs" />
+    <Compile Include="Forms\RouterIpActionForm.cs" />
     <Compile Include="Forms\PasswordPromptForm.cs" />
     <Compile Include="Models\AppSettings.cs" />
     <Compile Include="Models\Cabinet.cs" />
@@ -62,6 +63,7 @@
     <Compile Include="Services\NetworkService.cs" />
     <Compile Include="Services\ExcelExportService.cs" />
     <Compile Include="Utils\IPRange.cs" />
+    <Compile Include="Utils\SortingComparers.cs" />
     <Compile Include="Utils\Validation.cs" />
     <Compile Include="Utils\Logger.cs" />
   </ItemGroup>

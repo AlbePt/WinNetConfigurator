@@ -18,6 +18,8 @@ namespace WinNetConfigurator.Forms
         readonly BindingList<Device> devices = new BindingList<Device>();
         readonly DataGridView grid = new DataGridView { Dock = DockStyle.Fill, ReadOnly = true, AutoGenerateColumns = false, SelectionMode = DataGridViewSelectionMode.FullRowSelect, MultiSelect = false };
         readonly ContextMenuStrip settingsMenu = new ContextMenuStrip();
+        readonly CabinetNameComparer cabinetComparer = new CabinetNameComparer();
+        readonly IpAddressComparer ipAddressComparer = new IpAddressComparer();
         Button btnSettings;
         string currentSortProperty;
         bool sortAscending = true;
@@ -31,6 +33,9 @@ namespace WinNetConfigurator.Forms
             excel = excelService;
             network = networkService;
             settings = initialSettings ?? new AppSettings();
+
+            currentSortProperty = nameof(Device.CabinetName);
+            sortAscending = true;
 
             Text = "WinNetConfigurator";
             Width = 960;
@@ -81,6 +86,19 @@ namespace WinNetConfigurator.Forms
             });
 
             grid.DataSource = devices;
+
+            grid.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                HeaderText = "№",
+                Name = "RowNumber",
+                Width = 50,
+                ReadOnly = true,
+                SortMode = DataGridViewColumnSortMode.NotSortable,
+                DefaultCellStyle = new DataGridViewCellStyle
+                {
+                    Alignment = DataGridViewContentAlignment.MiddleRight
+                }
+            });
             grid.Columns.Add(CreateColumn("Тип", nameof(Device.Type), 120));
             grid.Columns.Add(CreateColumn("Кабинет", nameof(Device.CabinetName), 140));
             grid.Columns.Add(CreateColumn("Название", nameof(Device.Name), 180));
@@ -121,6 +139,13 @@ namespace WinNetConfigurator.Forms
 
         void Grid_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
         {
+            if (grid.Columns[e.ColumnIndex].Name == "RowNumber")
+            {
+                e.Value = (e.RowIndex + 1).ToString();
+                e.FormattingApplied = true;
+                return;
+            }
+
             if (grid.Columns[e.ColumnIndex].DataPropertyName == nameof(Device.Type) && e.Value is DeviceType type)
             {
                 switch (type)
@@ -218,13 +243,28 @@ namespace WinNetConfigurator.Forms
 
             currentSortProperty = propertyName;
 
-            var property = TypeDescriptor.GetProperties(typeof(Device))[propertyName];
-            if (property == null)
-                return;
-
-            var ordered = sortAscending
-                ? devices.OrderBy(d => property.GetValue(d))
-                : devices.OrderByDescending(d => property.GetValue(d));
+            IEnumerable<Device> ordered;
+            switch (propertyName)
+            {
+                case nameof(Device.CabinetName):
+                    ordered = sortAscending
+                        ? devices.OrderBy(d => d.CabinetName, cabinetComparer)
+                        : devices.OrderByDescending(d => d.CabinetName, cabinetComparer);
+                    break;
+                case nameof(Device.IpAddress):
+                    ordered = sortAscending
+                        ? devices.OrderBy(d => d.IpAddress, ipAddressComparer)
+                        : devices.OrderByDescending(d => d.IpAddress, ipAddressComparer);
+                    break;
+                default:
+                    var property = TypeDescriptor.GetProperties(typeof(Device))[propertyName];
+                    if (property == null)
+                        return;
+                    ordered = sortAscending
+                        ? devices.OrderBy(d => property.GetValue(d))
+                        : devices.OrderByDescending(d => property.GetValue(d));
+                    break;
+            }
 
             var sortedList = ordered.ToList();
 
@@ -334,7 +374,7 @@ namespace WinNetConfigurator.Forms
 
             if (Validation.IsRouterNetwork(config.IpAddress))
             {
-                return HandleRouterNetwork(cabinet, config);
+                return HandleRouterNetwork(cabinet, config, dnsList);
             }
 
             (System.Net.IPAddress Start, System.Net.IPAddress End) range;
@@ -481,69 +521,29 @@ namespace WinNetConfigurator.Forms
             return false;
         }
 
-        bool HandleRouterNetwork(Cabinet cabinet, NetworkConfiguration config)
+        bool HandleRouterNetwork(Cabinet cabinet, NetworkConfiguration config, string[] dnsList)
         {
-            var used = db.GetUsedIps();
-            List<string> available;
-            try
-            {
-                available = IPRange.Enumerate(settings.PoolStart, settings.PoolEnd)
-                    .Select(ip => ip.ToString())
-                    .Where(ip => !used.Contains(ip))
-                    .ToList();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(
-                    "Не удалось получить свободные адреса: " + ex.Message,
-                    "Ошибка",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error);
-                return false;
-            }
-
-            string recommended = available.FirstOrDefault() ?? string.Empty;
-            using (var dialog = new FreeIpOfferForm(
-                available,
-                recommended,
-                "Компьютер подключён к сети маршрутизатора (192.168.x.x). Выберите свободный IP из пула или введите свой. Настройки компьютера изменены не будут.",
-                allowCustomEntry: true))
+            using (var dialog = new RouterIpActionForm(config.IpAddress))
             {
                 if (dialog.ShowDialog(this) != DialogResult.OK)
                     return false;
 
-                var ip = dialog.SelectedIp;
-                if (!Validation.IsValidIPv4(ip))
+                switch (dialog.SelectedAction)
                 {
-                    MessageBox.Show(
-                        "Введите корректный IP-адрес.",
-                        "Ошибка",
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Error);
-                    return false;
+                    case RouterIpAction.BindOnly:
+                        SaveDevice(cabinet, config.IpAddress, config);
+                        MessageBox.Show(
+                            $"IP {config.IpAddress} записан в базу. Настройки компьютера не изменялись.",
+                            "Готово",
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Information);
+                        return true;
+                    case RouterIpAction.BindAndConfigure:
+                        return OfferFreeIp(cabinet, config, dnsList);
+                    default:
+                        return false;
                 }
-
-                var existing = db.GetDeviceByIp(ip);
-                if (existing != null)
-                {
-                    MessageBox.Show(
-                        "Такой IP уже зарегистрирован в базе.",
-                        "Ошибка",
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Error);
-                    return false;
-                }
-
-                SaveDevice(cabinet, ip, config);
-                MessageBox.Show(
-                    $"IP {ip} записан в базу. Настройки компьютера не изменялись.",
-                    "Готово",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Information);
-                return true;
             }
-
-            return false;
         }
 
         void SaveDevice(Cabinet cabinet, string ip, NetworkConfiguration config)
