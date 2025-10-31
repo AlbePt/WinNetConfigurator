@@ -47,14 +47,12 @@
   <ItemGroup>
     <Compile Include="Program.cs" />
     <Compile Include="Forms\MainForm.cs" />
-    <Compile Include="Forms\AssistantForm.cs" />
     <Compile Include="Forms\SettingsForm.cs" />
     <Compile Include="Forms\CabinetSelectionForm.cs" />
     <Compile Include="Forms\DeviceEditForm.cs" />
     <Compile Include="Forms\FreeIpOfferForm.cs" />
     <Compile Include="Forms\ManualIpEntryForm.cs" />
     <Compile Include="Forms\RouterIpActionForm.cs" />
-    <Compile Include="Forms\RoleSelectForm.cs" />
     <Compile Include="Forms\PasswordPromptForm.cs" />
     <Compile Include="Models\AppSettings.cs" />
     <Compile Include="Models\Cabinet.cs" />
