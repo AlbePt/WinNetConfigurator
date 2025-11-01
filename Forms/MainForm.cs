@@ -304,18 +304,21 @@ namespace WinNetConfigurator.Forms
             searchPanel.Controls.Add(btnClearSearch);
         }
 
-        void ApplyGridStyle(DataGridView grid)
+        private void ApplyGridStyle(DataGridView grid)
         {
-            if (grid == null)
-                return;
-
             grid.BackgroundColor = Color.White;
             grid.BorderStyle = BorderStyle.None;
             grid.EnableHeadersVisualStyles = false;
+
             grid.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(247, 249, 252);
             grid.ColumnHeadersDefaultCellStyle.ForeColor = Color.Black;
+            grid.ColumnHeadersDefaultCellStyle.Font = new Font(grid.Font, FontStyle.Bold);
+
             grid.RowHeadersVisible = false;
             grid.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(250, 252, 255);
+
+            grid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            grid.MultiSelect = false;
         }
 
         DataGridViewColumn CreateColumn(string header, string property, int width)
