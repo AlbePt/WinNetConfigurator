@@ -32,6 +32,7 @@ namespace WinNetConfigurator
             var db = new DbService();
             var network = new NetworkService();
             var exporter = new ExcelExportService();
+            var notificationService = new NotificationService();
 
             var settings = db.LoadSettings();
             if (!settings.IsComplete())
@@ -45,7 +46,7 @@ namespace WinNetConfigurator
                 }
             }
 
-            Application.Run(new MainForm(db, exporter, network, settings));
+            Application.Run(new MainForm(db, exporter, network, settings, notificationService));
         }
     }
 }
