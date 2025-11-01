@@ -50,6 +50,8 @@ namespace WinNetConfigurator.Forms
 
             UiDefaults.ApplyFormBaseStyle(this);
 
+            KeyPreview = true;
+
             currentSortProperty = nameof(Device.CabinetName);
             sortAscending = true;
 
@@ -61,6 +63,24 @@ namespace WinNetConfigurator.Forms
             BuildLayout();
             ApplyGridStyle(grid);
             LoadDevices();
+        }
+
+        protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+        {
+            switch (keyData)
+            {
+                case Keys.Control | Keys.F:
+                    txtSearch.Focus();
+                    return true;
+                case Keys.Delete:
+                    DeleteSelected();
+                    return true;
+                case Keys.Enter:
+                    EditSelected();
+                    return true;
+                default:
+                    return base.ProcessCmdKey(ref msg, keyData);
+            }
         }
 
         void BuildLayout()
