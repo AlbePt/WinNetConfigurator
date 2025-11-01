@@ -27,6 +27,7 @@ namespace WinNetConfigurator.Forms
         bool sortAscending = true;
         AppSettings settings;
 
+        readonly FlowLayoutPanel topButtonsPanel = new FlowLayoutPanel();
         readonly Panel assistantPanel = new Panel();
         readonly Label assistantTitle = new Label();
         readonly Label assistantText = new Label();
@@ -63,92 +64,9 @@ namespace WinNetConfigurator.Forms
 
         void BuildLayout()
         {
-            var panelButtons = new FlowLayoutPanel
-            {
-                Dock = DockStyle.Top,
-                Height = 48,
-                FlowDirection = FlowDirection.LeftToRight,
-                Padding = new Padding(12, 10, 12, 6)
-            };
-
-            var btnAdd = UiDefaults.CreateTopButton("Добавить", "Добавить новое устройство в базу", uiToolTip);
-            var btnEdit = UiDefaults.CreateTopButton("Изменить", "Изменить выделенное устройство", uiToolTip);
-            var btnDelete = UiDefaults.CreateTopButton("Удалить", "Удалить выделенное устройство", uiToolTip);
-            var btnRefresh = UiDefaults.CreateTopButton("Обновить", "Перечитать список из базы", uiToolTip);
-            var btnExport = UiDefaults.CreateTopButton("Экспорт XLSX", "Выгрузить устройства в Excel", uiToolTip);
-            var btnImportXlsx = UiDefaults.CreateTopButton("Импорт XLSX", "Загрузить устройства из Excel-файла", uiToolTip);
-            btnSettings = UiDefaults.CreateTopButton("Настройки", "Параметры подключения, диапазон IP и т.п.", uiToolTip);
-
-            btnAdd.Click += (_, __) => AddDevice();
-            btnEdit.Click += (_, __) => EditSelected();
-            btnDelete.Click += (_, __) => DeleteSelected();
-            btnRefresh.Click += (_, __) => LoadDevices();
-            btnExport.Click += (_, __) => Export();
-            btnImportXlsx.Click += (_, __) => ImportFromExcel();
-            btnSettings.Click += (_, __) => ShowSettingsMenu();
-
-            InitializeSettingsMenu();
-
-            panelButtons.Controls.Add(btnAdd);
-            panelButtons.Controls.Add(btnEdit);
-            panelButtons.Controls.Add(btnDelete);
-            panelButtons.Controls.Add(btnRefresh);
-            panelButtons.Controls.Add(btnExport);
-            panelButtons.Controls.Add(btnImportXlsx);
-            panelButtons.Controls.Add(btnSettings);
-
-            assistantPanel.Dock = DockStyle.Top;
-            assistantPanel.Height = 56;
-            assistantPanel.Padding = new Padding(12, 6, 12, 6);
-            assistantPanel.BackColor = Color.FromArgb(255, 252, 230);
-
-            assistantTitle.AutoSize = true;
-            assistantTitle.Font = new Font(Font, FontStyle.Bold);
-            assistantTitle.Text = "Подсказка";
-            assistantTitle.Location = new Point(0, 0);
-
-            assistantText.AutoSize = true;
-            assistantText.Width = 600;
-            assistantText.MaximumSize = new Size(800, 0);
-
-            assistantPanel.Controls.Add(assistantTitle);
-            assistantPanel.Controls.Add(assistantText);
-            assistantText.Left = 0;
-            assistantText.Top = assistantTitle.Bottom + 2;
-
-            uiToolTip.SetToolTip(assistantPanel, "Здесь будут появляться подсказки по действиям.");
-
-            searchPanel.Dock = DockStyle.Top;
-            searchPanel.Height = 36;
-            searchPanel.Padding = new Padding(12, 2, 12, 4);
-            searchPanel.FlowDirection = FlowDirection.LeftToRight;
-            searchPanel.WrapContents = false;
-
-            var lblSearch = new Label
-            {
-                Text = "Поиск:",
-                AutoSize = true,
-                TextAlign = ContentAlignment.MiddleLeft,
-                Margin = new Padding(0, 6, 6, 0)
-            };
-
-            txtSearch.Width = 220;
-            txtSearch.Margin = new Padding(0, 2, 6, 0);
-            txtSearch.TextChanged += (s, e) => ApplyFilter(txtSearch.Text);
-
-            btnClearSearch.Text = "×";
-            btnClearSearch.Width = 28;
-            btnClearSearch.Height = 24;
-            btnClearSearch.Margin = new Padding(0, 2, 0, 0);
-            btnClearSearch.Click += (s, e) =>
-            {
-                txtSearch.Text = "";
-                ApplyFilter("");
-            };
-
-            searchPanel.Controls.Add(lblSearch);
-            searchPanel.Controls.Add(txtSearch);
-            searchPanel.Controls.Add(btnClearSearch);
+            BuildTopButtonsPanel();
+            BuildAssistantPanel();
+            BuildSearchPanel();
 
             grid.DataSource = devices;
 
@@ -189,8 +107,101 @@ namespace WinNetConfigurator.Forms
             Controls.Add(grid);
             Controls.Add(searchPanel);
             Controls.Add(assistantPanel);
-            Controls.Add(panelButtons);
+            Controls.Add(topButtonsPanel);
             Controls.Add(statusStrip);
+        }
+
+        void BuildTopButtonsPanel()
+        {
+            topButtonsPanel.Dock = DockStyle.Top;
+            topButtonsPanel.Height = 48;
+            topButtonsPanel.FlowDirection = FlowDirection.LeftToRight;
+            topButtonsPanel.Padding = new Padding(12, 10, 12, 6);
+
+            var btnAdd = UiDefaults.CreateTopButton("Добавить", "Добавить новое устройство в базу", uiToolTip);
+            var btnEdit = UiDefaults.CreateTopButton("Изменить", "Изменить выделенное устройство", uiToolTip);
+            var btnDelete = UiDefaults.CreateTopButton("Удалить", "Удалить выделенное устройство", uiToolTip);
+            var btnRefresh = UiDefaults.CreateTopButton("Обновить", "Перечитать список из базы", uiToolTip);
+            var btnExport = UiDefaults.CreateTopButton("Экспорт XLSX", "Выгрузить устройства в Excel", uiToolTip);
+            var btnImportXlsx = UiDefaults.CreateTopButton("Импорт XLSX", "Загрузить устройства из Excel-файла", uiToolTip);
+            btnSettings = UiDefaults.CreateTopButton("Настройки", "Параметры подключения, диапазон IP и т.п.", uiToolTip);
+
+            btnAdd.Click += (_, __) => AddDevice();
+            btnEdit.Click += (_, __) => EditSelected();
+            btnDelete.Click += (_, __) => DeleteSelected();
+            btnRefresh.Click += (_, __) => LoadDevices();
+            btnExport.Click += (_, __) => Export();
+            btnImportXlsx.Click += (_, __) => ImportFromExcel();
+            btnSettings.Click += (_, __) => ShowSettingsMenu();
+
+            InitializeSettingsMenu();
+
+            topButtonsPanel.Controls.Add(btnAdd);
+            topButtonsPanel.Controls.Add(btnEdit);
+            topButtonsPanel.Controls.Add(btnDelete);
+            topButtonsPanel.Controls.Add(btnRefresh);
+            topButtonsPanel.Controls.Add(btnExport);
+            topButtonsPanel.Controls.Add(btnImportXlsx);
+            topButtonsPanel.Controls.Add(btnSettings);
+        }
+
+        void BuildAssistantPanel()
+        {
+            assistantPanel.Dock = DockStyle.Top;
+            assistantPanel.Height = 56;
+            assistantPanel.Padding = new Padding(12, 6, 12, 6);
+            assistantPanel.BackColor = Color.FromArgb(255, 252, 230);
+
+            assistantTitle.AutoSize = true;
+            assistantTitle.Font = new Font(Font, FontStyle.Bold);
+            assistantTitle.Text = "Подсказка";
+            assistantTitle.Location = new Point(0, 0);
+
+            assistantText.AutoSize = true;
+            assistantText.Width = 600;
+            assistantText.MaximumSize = new Size(800, 0);
+
+            assistantPanel.Controls.Add(assistantTitle);
+            assistantPanel.Controls.Add(assistantText);
+            assistantText.Left = 0;
+            assistantText.Top = assistantTitle.Bottom + 2;
+
+            uiToolTip.SetToolTip(assistantPanel, "Здесь будут появляться подсказки по действиям.");
+        }
+
+        void BuildSearchPanel()
+        {
+            searchPanel.Dock = DockStyle.Top;
+            searchPanel.Height = 36;
+            searchPanel.Padding = new Padding(12, 2, 12, 4);
+            searchPanel.FlowDirection = FlowDirection.LeftToRight;
+            searchPanel.WrapContents = false;
+
+            var lblSearch = new Label
+            {
+                Text = "Поиск:",
+                AutoSize = true,
+                TextAlign = ContentAlignment.MiddleLeft,
+                Margin = new Padding(0, 6, 6, 0)
+            };
+
+            txtSearch.Width = 220;
+            txtSearch.Margin = new Padding(0, 2, 6, 0);
+            txtSearch.TextChanged += (s, e) => ApplyFilter(txtSearch.Text);
+
+            btnClearSearch.Text = "×";
+            btnClearSearch.Width = 28;
+            btnClearSearch.Height = 24;
+            btnClearSearch.Margin = new Padding(0, 2, 0, 0);
+            btnClearSearch.Click += (s, e) =>
+            {
+                txtSearch.Text = "";
+                ApplyFilter("");
+            };
+
+            searchPanel.Controls.Add(lblSearch);
+            searchPanel.Controls.Add(txtSearch);
+            searchPanel.Controls.Add(btnClearSearch);
         }
 
         void ApplyGridStyle(DataGridView grid)
