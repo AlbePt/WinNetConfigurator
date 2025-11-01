@@ -111,39 +111,7 @@ namespace WinNetConfigurator.Forms
             BuildAssistantPanel();
             BuildSearchPanel();
             BuildNotificationsPanel();
-
-            grid.DataSource = devices;
-
-            uiToolTip.SetToolTip(grid, "Двойной щелчок — редактирование. Правой кнопкой — контекстное меню.");
-
-            grid.Columns.Add(new DataGridViewTextBoxColumn
-            {
-                HeaderText = "№",
-                Name = "RowNumber",
-                Width = 50,
-                ReadOnly = true,
-                SortMode = DataGridViewColumnSortMode.NotSortable,
-                DefaultCellStyle = new DataGridViewCellStyle
-                {
-                    Alignment = DataGridViewContentAlignment.MiddleRight
-                }
-            });
-            grid.Columns.Add(CreateColumn("Тип", nameof(Device.Type), 120));
-            grid.Columns.Add(CreateColumn("Кабинет", nameof(Device.CabinetName), 140));
-            grid.Columns.Add(CreateColumn("Название", nameof(Device.Name), 180));
-            grid.Columns.Add(CreateColumn("IP адрес", nameof(Device.IpAddress), 120));
-            grid.Columns.Add(CreateColumn("MAC адрес", nameof(Device.MacAddress), 140));
-            grid.Columns.Add(CreateColumn("Описание", nameof(Device.Description), -1));
-            grid.Columns.Add(new DataGridViewTextBoxColumn
-            {
-                HeaderText = "Закреплено",
-                DataPropertyName = nameof(Device.AssignedAt),
-                Width = 150,
-                DefaultCellStyle = new DataGridViewCellStyle { Format = "dd.MM.yyyy HH:mm" },
-                SortMode = DataGridViewColumnSortMode.Programmatic
-            });
-            grid.CellFormatting += Grid_CellFormatting;
-            grid.ColumnHeaderMouseClick += Grid_ColumnHeaderMouseClick;
+            BuildMainGridArea();
 
             statusStrip = UiDefaults.CreateStatusStrip();
             statusLabel = (ToolStripStatusLabel)statusStrip.Items[0];
@@ -204,7 +172,7 @@ namespace WinNetConfigurator.Forms
             }
         }
 
-        void BuildTopButtonsPanel()
+        private void BuildTopButtonsPanel()
         {
             topButtonsPanel.Dock = DockStyle.Top;
             topButtonsPanel.Height = 48;
@@ -269,7 +237,7 @@ namespace WinNetConfigurator.Forms
             uiToolTip.SetToolTip(assistantPanel, "Здесь будут появляться подсказки по действиям.");
         }
 
-        void BuildSearchPanel()
+        private void BuildSearchPanel()
         {
             searchPanel.Dock = DockStyle.Top;
             searchPanel.Height = 36;
@@ -302,6 +270,43 @@ namespace WinNetConfigurator.Forms
             searchPanel.Controls.Add(lblSearch);
             searchPanel.Controls.Add(txtSearch);
             searchPanel.Controls.Add(btnClearSearch);
+        }
+
+        private void BuildMainGridArea()
+        {
+            grid.DataSource = devices;
+
+            uiToolTip.SetToolTip(grid, "Двойной щелчок — редактирование. Правой кнопкой — контекстное меню.");
+
+            grid.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                HeaderText = "№",
+                Name = "RowNumber",
+                Width = 50,
+                ReadOnly = true,
+                SortMode = DataGridViewColumnSortMode.NotSortable,
+                DefaultCellStyle = new DataGridViewCellStyle
+                {
+                    Alignment = DataGridViewContentAlignment.MiddleRight
+                }
+            });
+            grid.Columns.Add(CreateColumn("Тип", nameof(Device.Type), 120));
+            grid.Columns.Add(CreateColumn("Кабинет", nameof(Device.CabinetName), 140));
+            grid.Columns.Add(CreateColumn("Название", nameof(Device.Name), 180));
+            grid.Columns.Add(CreateColumn("IP адрес", nameof(Device.IpAddress), 120));
+            grid.Columns.Add(CreateColumn("MAC адрес", nameof(Device.MacAddress), 140));
+            grid.Columns.Add(CreateColumn("Описание", nameof(Device.Description), -1));
+            grid.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                HeaderText = "Закреплено",
+                DataPropertyName = nameof(Device.AssignedAt),
+                Width = 150,
+                DefaultCellStyle = new DataGridViewCellStyle { Format = "dd.MM.yyyy HH:mm" },
+                SortMode = DataGridViewColumnSortMode.Programmatic
+            });
+
+            grid.CellFormatting += Grid_CellFormatting;
+            grid.ColumnHeaderMouseClick += Grid_ColumnHeaderMouseClick;
         }
 
         private void ApplyGridStyle(DataGridView grid)
