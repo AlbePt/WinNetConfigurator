@@ -16,8 +16,9 @@ namespace WinNetConfigurator.UI
                 AutoSize = true,
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 BackColor = AppTheme.SecondaryBackground,
+                ForeColor = AppTheme.TextPrimary,
                 Padding = AppTheme.PaddingNormal,
-                Margin = new Padding(0, 0, 8, 0),
+                Margin = AppTheme.PaddingNormal,
                 Height = 28
             };
 
@@ -51,7 +52,7 @@ namespace WinNetConfigurator.UI
             };
             var label = new ToolStripStatusLabel("Готово")
             {
-                ForeColor = Color.Black
+                ForeColor = AppTheme.TextPrimary
             };
             strip.Items.Add(label);
             return strip;
@@ -64,7 +65,7 @@ namespace WinNetConfigurator.UI
                 return;
             }
 
-            form.BackColor = AppTheme.PrimaryBackground;
+            form.BackColor = AppTheme.MainBackground;
             form.Padding = AppTheme.PaddingLarge;
         }
     }
