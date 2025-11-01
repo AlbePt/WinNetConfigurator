@@ -213,12 +213,19 @@ namespace WinNetConfigurator.Forms
             topButtonsPanel.Padding = new Padding(12, 10, 12, 6);
 
             var btnAdd = UiDefaults.CreateTopButton("Добавить", "Добавить новое устройство в базу", uiToolTip);
+            UiDefaults.StyleTopCommandButton(btnAdd);
             var btnEdit = UiDefaults.CreateTopButton("Изменить", "Изменить выделенное устройство", uiToolTip);
+            UiDefaults.StyleTopCommandButton(btnEdit);
             var btnDelete = UiDefaults.CreateTopButton("Удалить", "Удалить выделенное устройство", uiToolTip);
+            UiDefaults.StyleTopCommandButton(btnDelete);
             var btnRefresh = UiDefaults.CreateTopButton("Обновить", "Перечитать список из базы", uiToolTip);
+            UiDefaults.StyleTopCommandButton(btnRefresh);
             var btnExport = UiDefaults.CreateTopButton("Экспорт XLSX", "Выгрузить устройства в Excel", uiToolTip);
+            UiDefaults.StyleTopCommandButton(btnExport);
             var btnImportXlsx = UiDefaults.CreateTopButton("Импорт XLSX", "Загрузить устройства из Excel-файла", uiToolTip);
+            UiDefaults.StyleTopCommandButton(btnImportXlsx);
             btnSettings = UiDefaults.CreateTopButton("Настройки", "Параметры подключения, диапазон IP и т.п.", uiToolTip);
+            UiDefaults.StyleTopCommandButton(btnSettings);
 
             btnAdd.Click += (_, __) => AddDevice();
             btnEdit.Click += (_, __) => EditSelected();
