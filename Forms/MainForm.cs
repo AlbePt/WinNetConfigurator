@@ -51,8 +51,6 @@ namespace WinNetConfigurator.Forms
             settings = initialSettings ?? new AppSettings();
             _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
 
-            KeyPreview = true;
-
             currentSortProperty = nameof(Device.CabinetName);
             sortAscending = true;
 
@@ -63,6 +61,7 @@ namespace WinNetConfigurator.Forms
 
             BuildLayout();
             UiDefaults.ApplyFormBaseStyle(this);
+            KeyPreview = true;
             ApplyGridStyle(grid);
             LoadDevices();
             _notificationService.NotificationsChanged += OnNotificationsChanged;
@@ -88,20 +87,28 @@ namespace WinNetConfigurator.Forms
 
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
         {
-            switch (keyData)
+            if (keyData == (Keys.Control | Keys.F))
             {
-                case Keys.Control | Keys.F:
+                if (txtSearch != null && !txtSearch.IsDisposed)
+                {
                     txtSearch.Focus();
-                    return true;
-                case Keys.Delete:
-                    DeleteSelected();
-                    return true;
-                case Keys.Enter:
-                    EditSelected();
-                    return true;
-                default:
-                    return base.ProcessCmdKey(ref msg, keyData);
+                }
+                return true;
             }
+
+            if (keyData == Keys.Delete)
+            {
+                DeleteSelected();
+                return true;
+            }
+
+            if (keyData == Keys.Enter)
+            {
+                EditSelected();
+                return true;
+            }
+
+            return base.ProcessCmdKey(ref msg, keyData);
         }
 
         void BuildLayout()
