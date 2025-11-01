@@ -22,6 +22,7 @@ namespace WinNetConfigurator.Forms
         readonly ContextMenuStrip settingsMenu = new ContextMenuStrip();
         readonly CabinetNameComparer cabinetComparer = new CabinetNameComparer();
         readonly IpAddressComparer ipAddressComparer = new IpAddressComparer();
+        readonly NotificationService notificationService;
         Button btnSettings;
         string currentSortProperty;
         bool sortAscending = true;
@@ -36,17 +37,19 @@ namespace WinNetConfigurator.Forms
         readonly Button btnClearSearch = new Button();
         readonly ToolTip uiToolTip = new ToolTip();
         readonly Panel notificationsPanel = new Panel();
+        readonly ListBox notificationsList = new ListBox();
         StatusStrip statusStrip;
         ToolStripStatusLabel statusLabel;
 
         const string SettingsPassword = "3baRTfg6";
 
-        public MainForm(DbService db, ExcelExportService excelService, NetworkService networkService, AppSettings initialSettings)
+        public MainForm(DbService db, ExcelExportService excelService, NetworkService networkService, AppSettings initialSettings, NotificationService notificationService)
         {
             this.db = db;
             excel = excelService;
             network = networkService;
             settings = initialSettings ?? new AppSettings();
+            this.notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
 
             UiDefaults.ApplyFormBaseStyle(this);
 
@@ -63,6 +66,26 @@ namespace WinNetConfigurator.Forms
             BuildLayout();
             ApplyGridStyle(grid);
             LoadDevices();
+            notificationService.NotificationsChanged += NotificationServiceOnNotificationsChanged;
+            RefreshNotifications();
+        }
+
+        void NotificationServiceOnNotificationsChanged(object sender, EventArgs e)
+        {
+            if (InvokeRequired)
+            {
+                BeginInvoke(new Action(RefreshNotifications));
+            }
+            else
+            {
+                RefreshNotifications();
+            }
+        }
+
+        protected override void OnFormClosed(FormClosedEventArgs e)
+        {
+            base.OnFormClosed(e);
+            notificationService.NotificationsChanged -= NotificationServiceOnNotificationsChanged;
         }
 
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
@@ -150,14 +173,36 @@ namespace WinNetConfigurator.Forms
                 Height = 24
             };
 
-            var notificationsList = new ListBox
-            {
-                Dock = DockStyle.Fill
-            };
-            notificationsList.Items.Add("Нет уведомлений");
+            notificationsList.Dock = DockStyle.Fill;
 
             notificationsPanel.Controls.Add(notificationsList);
             notificationsPanel.Controls.Add(titleLabel);
+        }
+
+        void RefreshNotifications()
+        {
+            var notifications = notificationService.GetAll();
+            notificationsList.BeginUpdate();
+            try
+            {
+                notificationsList.Items.Clear();
+                if (notifications == null || notifications.Count == 0)
+                {
+                    notificationsList.Items.Add("Нет уведомлений");
+                    return;
+                }
+
+                foreach (var notification in notifications.OrderByDescending(n => n.CreatedAt).Take(20))
+                {
+                    var timestamp = notification.CreatedAt.ToLocalTime().ToString("dd.MM HH:mm");
+                    var text = string.IsNullOrWhiteSpace(notification.Message) ? notification.Title : notification.Message;
+                    notificationsList.Items.Add(string.Format("{0} — {1}", timestamp, string.IsNullOrWhiteSpace(text) ? "" : text));
+                }
+            }
+            finally
+            {
+                notificationsList.EndUpdate();
+            }
         }
 
         void BuildTopButtonsPanel()

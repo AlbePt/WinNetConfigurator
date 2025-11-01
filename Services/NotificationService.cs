@@ -33,6 +33,16 @@ namespace WinNetConfigurator.Services
             }
         }
 
+        public IReadOnlyList<Notification> GetAll()
+        {
+            lock (_lock)
+            {
+                return _notifications
+                    .Where(n => n != null)
+                    .ToList();
+            }
+        }
+
         public void Acknowledge(Guid id)
         {
             lock (_lock)
