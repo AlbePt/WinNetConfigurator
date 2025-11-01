@@ -30,16 +30,12 @@ namespace WinNetConfigurator.UI
 
         public static void StyleTopCommandButton(Button button)
         {
-            if (button == null)
-            {
-                return;
-            }
-
             button.Height = 32;
             button.MinimumSize = new Size(120, 32);
             button.FlatStyle = FlatStyle.Flat;
             button.FlatAppearance.BorderSize = 0;
             button.BackColor = AppTheme.SecondaryBackground;
+            button.ForeColor = AppTheme.TextPrimary;
             button.Margin = new Padding(0, 0, 8, 0);
         }
 
