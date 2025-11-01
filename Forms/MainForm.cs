@@ -46,8 +46,6 @@ namespace WinNetConfigurator.Forms
             network = networkService;
             settings = initialSettings ?? new AppSettings();
 
-            UiDefaults.ApplyFormBaseStyle(this);
-
             currentSortProperty = nameof(Device.CabinetName);
             sortAscending = true;
 
