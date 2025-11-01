@@ -1,5 +1,6 @@
 using System.Drawing;
 using System.Windows.Forms;
+using WinNetConfigurator.UI;
 
 namespace WinNetConfigurator.UI
 {
@@ -14,6 +15,8 @@ namespace WinNetConfigurator.UI
                 Text = text,
                 AutoSize = true,
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                BackColor = AppTheme.SecondaryBackground,
+                Padding = AppTheme.PaddingNormal,
                 Margin = new Padding(0, 0, 8, 0),
                 Height = 28
             };
@@ -28,11 +31,26 @@ namespace WinNetConfigurator.UI
         {
             var strip = new StatusStrip
             {
-                SizingGrip = false
+                SizingGrip = false,
+                BackColor = AppTheme.SecondaryBackground
             };
-            var label = new ToolStripStatusLabel("Готово");
+            var label = new ToolStripStatusLabel("Готово")
+            {
+                ForeColor = Color.Black
+            };
             strip.Items.Add(label);
             return strip;
+        }
+
+        public static void ApplyFormBaseStyle(Form form)
+        {
+            if (form == null)
+            {
+                return;
+            }
+
+            form.BackColor = AppTheme.PrimaryBackground;
+            form.Padding = AppTheme.PaddingLarge;
         }
     }
 }
