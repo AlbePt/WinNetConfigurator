@@ -51,8 +51,6 @@ namespace WinNetConfigurator.Forms
             settings = initialSettings ?? new AppSettings();
             this.notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
 
-            UiDefaults.ApplyFormBaseStyle(this);
-
             KeyPreview = true;
 
             currentSortProperty = nameof(Device.CabinetName);
@@ -64,6 +62,7 @@ namespace WinNetConfigurator.Forms
             StartPosition = FormStartPosition.CenterScreen;
 
             BuildLayout();
+            UiDefaults.ApplyFormBaseStyle(this);
             ApplyGridStyle(grid);
             LoadDevices();
             notificationService.NotificationsChanged += NotificationServiceOnNotificationsChanged;
