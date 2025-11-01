@@ -5,7 +5,8 @@ namespace WinNetConfigurator.UI
 {
     public static class AppTheme
     {
-        public static readonly Color MainBackground = Color.FromArgb(247, 249, 252);
+        public static readonly Color PrimaryBackground = Color.FromArgb(247, 249, 252);
+        public static readonly Color MainBackground = PrimaryBackground;
         public static readonly Color SecondaryBackground = Color.White;
         public static readonly Color Accent = Color.FromArgb(30, 99, 255);
         public static readonly Color AccentSoft = Color.FromArgb(226, 236, 255);
