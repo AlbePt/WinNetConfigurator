@@ -57,6 +57,7 @@ namespace WinNetConfigurator.Forms
             StartPosition = FormStartPosition.CenterScreen;
 
             BuildLayout();
+            ApplyGridStyle(grid);
             LoadDevices();
         }
 
@@ -190,6 +191,20 @@ namespace WinNetConfigurator.Forms
             Controls.Add(assistantPanel);
             Controls.Add(panelButtons);
             Controls.Add(statusStrip);
+        }
+
+        void ApplyGridStyle(DataGridView grid)
+        {
+            if (grid == null)
+                return;
+
+            grid.BackgroundColor = Color.White;
+            grid.BorderStyle = BorderStyle.None;
+            grid.EnableHeadersVisualStyles = false;
+            grid.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(247, 249, 252);
+            grid.ColumnHeadersDefaultCellStyle.ForeColor = Color.Black;
+            grid.RowHeadersVisible = false;
+            grid.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(250, 252, 255);
         }
 
         DataGridViewColumn CreateColumn(string header, string property, int width)
