@@ -36,8 +36,8 @@ namespace WinNetConfigurator.Forms
         readonly TextBox txtSearch = new TextBox();
         readonly Button btnClearSearch = new Button();
         readonly ToolTip uiToolTip = new ToolTip();
-        readonly Panel notificationsPanel = new Panel();
-        readonly ListBox notificationsList = new ListBox();
+        private Panel notificationsPanel;
+        private ListBox notificationsList;
         StatusStrip statusStrip;
         ToolStripStatusLabel statusLabel;
 
@@ -110,13 +110,12 @@ namespace WinNetConfigurator.Forms
             BuildTopButtonsPanel();
             BuildAssistantPanel();
             BuildSearchPanel();
-            BuildNotificationsPanel();
             BuildMainGridArea();
+            BuildNotificationsPanel();
 
             statusStrip = UiDefaults.CreateStatusStrip();
             statusLabel = (ToolStripStatusLabel)statusStrip.Items[0];
 
-            Controls.Add(notificationsPanel);
             Controls.Add(grid);
             Controls.Add(searchPanel);
             Controls.Add(assistantPanel);
@@ -124,26 +123,32 @@ namespace WinNetConfigurator.Forms
             Controls.Add(statusStrip);
         }
 
-        void BuildNotificationsPanel()
+        private void BuildNotificationsPanel()
         {
+            notificationsPanel = new Panel();
             notificationsPanel.Dock = DockStyle.Right;
             notificationsPanel.Width = 240;
             notificationsPanel.BackColor = AppTheme.SecondaryBackground;
-            notificationsPanel.Padding = new Padding(12, 10, 12, 12);
+            notificationsPanel.Padding = AppTheme.PaddingNormal;
 
-            var titleLabel = new Label
-            {
-                Text = "Уведомления",
-                Dock = DockStyle.Top,
-                Font = new Font(Font, FontStyle.Bold),
-                AutoSize = false,
-                Height = 24
-            };
+            var title = new Label();
+            title.Text = "Уведомления";
+            title.Dock = DockStyle.Top;
+            title.Font = new Font(Font, FontStyle.Bold);
+            title.Height = 28;
 
+            notificationsList = new ListBox();
             notificationsList.Dock = DockStyle.Fill;
 
+            // пока нет реальных данных — добавим заглушку
+            notificationsList.Items.Add("Нет уведомлений");
+
             notificationsPanel.Controls.Add(notificationsList);
-            notificationsPanel.Controls.Add(titleLabel);
+            notificationsPanel.Controls.Add(title);
+
+            // панель должна быть добавлена в Controls формы ДОКУМЕНТАЛЬНО после таблицы или до?
+            // Нам нужно, чтобы правая панель была справа от таблицы, значит добавляем в Controls в самом конце:
+            this.Controls.Add(notificationsPanel);
         }
 
         void RefreshNotifications()
