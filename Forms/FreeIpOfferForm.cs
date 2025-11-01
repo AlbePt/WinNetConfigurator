@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
+using WinNetConfigurator.UI;
 using WinNetConfigurator.Utils;
 
 namespace WinNetConfigurator.Forms
@@ -18,6 +19,7 @@ namespace WinNetConfigurator.Forms
 
         public FreeIpOfferForm(IEnumerable<string> available, string recommended, string description, bool allowCustomEntry = false)
         {
+            UiDefaults.ApplyFormBaseStyle(this);
             pool = new HashSet<string>(available ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
             this.allowCustomEntry = allowCustomEntry;
 

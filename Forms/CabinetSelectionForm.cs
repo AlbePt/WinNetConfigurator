@@ -4,6 +4,7 @@ using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
 using WinNetConfigurator.Models;
+using WinNetConfigurator.UI;
 
 namespace WinNetConfigurator.Forms
 {
@@ -14,6 +15,7 @@ namespace WinNetConfigurator.Forms
 
         public CabinetSelectionForm(IEnumerable<Cabinet> cabinets)
         {
+            UiDefaults.ApplyFormBaseStyle(this);
             Text = "Выбор кабинета";
             StartPosition = FormStartPosition.CenterScreen;
             FormBorderStyle = FormBorderStyle.FixedDialog;

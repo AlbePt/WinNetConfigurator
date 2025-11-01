@@ -3,6 +3,7 @@ using System.Linq;
 using System.Windows.Forms;
 using WinNetConfigurator.Models;
 using WinNetConfigurator.Services;
+using WinNetConfigurator.UI;
 using WinNetConfigurator.Utils;
 
 namespace WinNetConfigurator.Forms
@@ -28,6 +29,7 @@ namespace WinNetConfigurator.Forms
 
         public MachineEditForm(DbService db, Machine machine)
         {
+            UiDefaults.ApplyFormBaseStyle(this);
             _db = db;
             _original = machine;
 

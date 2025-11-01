@@ -3,6 +3,7 @@ using System.Drawing;
 using System.Windows.Forms;
 using WinNetConfigurator.Models;
 using WinNetConfigurator.Services;
+using WinNetConfigurator.UI;
 using WinNetConfigurator.Utils;
 
 namespace WinNetConfigurator.Forms
@@ -21,6 +22,7 @@ namespace WinNetConfigurator.Forms
 
         public DeviceEditForm(DbService database, Device source, Cabinet[] cabinets)
         {
+            UiDefaults.ApplyFormBaseStyle(this);
             db = database;
             Text = source?.Id > 0 ? "Редактирование устройства" : "Новое устройство";
             StartPosition = FormStartPosition.CenterParent;

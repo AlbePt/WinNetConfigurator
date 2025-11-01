@@ -1,6 +1,7 @@
 using System;
 using System.Drawing;
 using System.Windows.Forms;
+using WinNetConfigurator.UI;
 
 namespace WinNetConfigurator.Forms
 {
@@ -17,6 +18,7 @@ namespace WinNetConfigurator.Forms
 
         public RouterIpActionForm(string currentIp)
         {
+            UiDefaults.ApplyFormBaseStyle(this);
             Text = "Выбор действия";
             FormBorderStyle = FormBorderStyle.FixedDialog;
             StartPosition = FormStartPosition.CenterParent;
