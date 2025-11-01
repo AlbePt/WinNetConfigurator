@@ -1,6 +1,7 @@
 using System;
 using System.Drawing;
 using System.Windows.Forms;
+using WinNetConfigurator.UI;
 using WinNetConfigurator.Utils;
 
 namespace WinNetConfigurator.Forms
@@ -12,6 +13,7 @@ namespace WinNetConfigurator.Forms
 
         public ManualIpEntryForm(string message, string initialIp)
         {
+            UiDefaults.ApplyFormBaseStyle(this);
             Text = "Ввод IP-адреса";
             StartPosition = FormStartPosition.CenterParent;
             FormBorderStyle = FormBorderStyle.FixedDialog;

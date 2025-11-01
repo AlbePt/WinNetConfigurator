@@ -1,5 +1,6 @@
 using System.Drawing;
 using System.Windows.Forms;
+using WinNetConfigurator.UI;
 
 namespace WinNetConfigurator.Forms
 {
@@ -10,6 +11,7 @@ namespace WinNetConfigurator.Forms
 
         public PasswordPromptForm()
         {
+            UiDefaults.ApplyFormBaseStyle(this);
             Text = "Пароль";
             StartPosition = FormStartPosition.CenterParent;
             FormBorderStyle = FormBorderStyle.FixedDialog;

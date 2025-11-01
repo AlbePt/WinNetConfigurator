@@ -2,6 +2,7 @@ using System;
 using System.Drawing;
 using System.Windows.Forms;
 using WinNetConfigurator.Models;
+using WinNetConfigurator.UI;
 using WinNetConfigurator.Utils;
 
 namespace WinNetConfigurator.Forms
@@ -19,6 +20,7 @@ namespace WinNetConfigurator.Forms
 
         public SettingsForm(AppSettings current)
         {
+            UiDefaults.ApplyFormBaseStyle(this);
             Text = "Настройки сети";
             StartPosition = FormStartPosition.CenterScreen;
             FormBorderStyle = FormBorderStyle.FixedDialog;
