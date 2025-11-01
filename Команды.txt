@@ -1,0 +1,2 @@
+msbuild .\WinNetConfigurator.csproj "/t:Clean;Build" "/p:Configuration=Debug;Platform=AnyCPU;LangVersion=8.0"
+msbuild .\WinNetConfigurator.csproj "/t:Clean;Build" "/p:Configuration=Release;Platform=AnyCPU;LangVersion=8.0"
