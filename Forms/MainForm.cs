@@ -22,7 +22,7 @@ namespace WinNetConfigurator.Forms
         readonly ContextMenuStrip settingsMenu = new ContextMenuStrip();
         readonly CabinetNameComparer cabinetComparer = new CabinetNameComparer();
         readonly IpAddressComparer ipAddressComparer = new IpAddressComparer();
-        readonly NotificationService notificationService;
+        private readonly NotificationService _notificationService;
         Button btnSettings;
         string currentSortProperty;
         bool sortAscending = true;
@@ -49,7 +49,7 @@ namespace WinNetConfigurator.Forms
             excel = excelService;
             network = networkService;
             settings = initialSettings ?? new AppSettings();
-            this.notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
+            _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
 
             KeyPreview = true;
 
@@ -65,26 +65,25 @@ namespace WinNetConfigurator.Forms
             UiDefaults.ApplyFormBaseStyle(this);
             ApplyGridStyle(grid);
             LoadDevices();
-            notificationService.NotificationsChanged += NotificationServiceOnNotificationsChanged;
+            _notificationService.NotificationsChanged += OnNotificationsChanged;
             RefreshNotifications();
         }
 
-        void NotificationServiceOnNotificationsChanged(object sender, EventArgs e)
+        private void OnNotificationsChanged(object sender, EventArgs e)
         {
             if (InvokeRequired)
             {
                 BeginInvoke(new Action(RefreshNotifications));
+                return;
             }
-            else
-            {
-                RefreshNotifications();
-            }
+
+            RefreshNotifications();
         }
 
         protected override void OnFormClosed(FormClosedEventArgs e)
         {
             base.OnFormClosed(e);
-            notificationService.NotificationsChanged -= NotificationServiceOnNotificationsChanged;
+            _notificationService.NotificationsChanged -= OnNotificationsChanged;
         }
 
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
@@ -140,8 +139,7 @@ namespace WinNetConfigurator.Forms
             notificationsList = new ListBox();
             notificationsList.Dock = DockStyle.Fill;
 
-            // пока нет реальных данных — добавим заглушку
-            notificationsList.Items.Add("Нет уведомлений");
+            RefreshNotifications();
 
             notificationsPanel.Controls.Add(notificationsList);
             notificationsPanel.Controls.Add(title);
@@ -153,7 +151,7 @@ namespace WinNetConfigurator.Forms
 
         void RefreshNotifications()
         {
-            var notifications = notificationService.GetAll();
+            var notifications = _notificationService.GetAll();
             notificationsList.BeginUpdate();
             try
             {
