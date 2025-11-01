@@ -35,6 +35,7 @@ namespace WinNetConfigurator.Forms
         readonly TextBox txtSearch = new TextBox();
         readonly Button btnClearSearch = new Button();
         readonly ToolTip uiToolTip = new ToolTip();
+        readonly Panel notificationsPanel = new Panel();
         StatusStrip statusStrip;
         ToolStripStatusLabel statusLabel;
 
@@ -67,6 +68,7 @@ namespace WinNetConfigurator.Forms
             BuildTopButtonsPanel();
             BuildAssistantPanel();
             BuildSearchPanel();
+            BuildNotificationsPanel();
 
             grid.DataSource = devices;
 
@@ -104,11 +106,38 @@ namespace WinNetConfigurator.Forms
             statusStrip = UiDefaults.CreateStatusStrip();
             statusLabel = (ToolStripStatusLabel)statusStrip.Items[0];
 
+            Controls.Add(notificationsPanel);
             Controls.Add(grid);
             Controls.Add(searchPanel);
             Controls.Add(assistantPanel);
             Controls.Add(topButtonsPanel);
             Controls.Add(statusStrip);
+        }
+
+        void BuildNotificationsPanel()
+        {
+            notificationsPanel.Dock = DockStyle.Right;
+            notificationsPanel.Width = 240;
+            notificationsPanel.BackColor = AppTheme.SecondaryBackground;
+            notificationsPanel.Padding = new Padding(12, 10, 12, 12);
+
+            var titleLabel = new Label
+            {
+                Text = "Уведомления",
+                Dock = DockStyle.Top,
+                Font = new Font(Font, FontStyle.Bold),
+                AutoSize = false,
+                Height = 24
+            };
+
+            var notificationsList = new ListBox
+            {
+                Dock = DockStyle.Fill
+            };
+            notificationsList.Items.Add("Нет уведомлений");
+
+            notificationsPanel.Controls.Add(notificationsList);
+            notificationsPanel.Controls.Add(titleLabel);
         }
 
         void BuildTopButtonsPanel()
